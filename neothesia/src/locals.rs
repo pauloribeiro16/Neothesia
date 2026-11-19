@@ -527,6 +527,55 @@ pub mod settings {
     }
 }
 
+pub mod tracks {
+    use super::LOCAL;
+
+    pub fn percussion() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Perkusja".into(),
+            "de" => "Schlagzeug".into(),
+            "pt" => "Percussão".into(),
+            _ => "Percussion".into(),
+        }
+    }
+
+    pub fn notes(count: usize) -> String {
+        match LOCAL.as_str() {
+            "pl" => format!("{count} nut"),
+            "de" => format!("{count} Noten"),
+            "pt" => format!("{count} notas"),
+            _ => format!("{count} notes"),
+        }
+    }
+
+    pub fn auto() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Auto".into(),
+            "de" => "Auto".into(),
+            "pt" => "Auto".into(),
+            _ => "Auto".into(),
+        }
+    }
+
+    pub fn human() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Człowiek".into(),
+            "de" => "Mensch".into(),
+            "pt" => "Humano".into(),
+            _ => "Human".into(),
+        }
+    }
+
+    pub fn mute() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Wycisz".into(),
+            "de" => "Stumm".into(),
+            "pt" => "Mudo".into(),
+            _ => "Mute".into(),
+        }
+    }
+}
+
 pub mod library {
     use super::LOCAL;
 
