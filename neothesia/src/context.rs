@@ -62,6 +62,13 @@ impl Context {
         let text_renderer_factory = TextRendererFactory::new(&gpu);
         let quad_renderer_factory = QuadRendererFactory::new(&gpu, &transform_uniform);
 
+        let library = crate::library::Library::load();
+        let takes = crate::recording::TakeStore::new();
+        let imported = crate::recording::import::sync_all(&library, &takes);
+        if imported > 0 {
+            log::info!("{imported} gravação(ões) importada(s) das pastas ligadas");
+        }
+
         Self {
             window,
 
@@ -74,8 +81,8 @@ impl Context {
             output_manager: Default::default(),
             input_manager: InputManager::new(proxy.clone()),
             config,
-            library: crate::library::Library::load(),
-            takes: crate::recording::TakeStore::new(),
+            library,
+            takes,
             last_result: None,
             proxy,
             frame_timestamp: std::time::Instant::now(),

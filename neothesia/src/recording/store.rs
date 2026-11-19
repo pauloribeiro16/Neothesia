@@ -34,6 +34,22 @@ pub struct Take {
     pub missed: usize,
     pub extra: usize,
     pub offset_ms: f32,
+    pub info: TakeExtra,
+}
+
+/// Dados adicionais (sobretudo de gravações importadas, comparadas por alinhamento).
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct TakeExtra {
+    /// Ficheiro de onde foi importada (para não importar duas vezes)
+    pub source: Option<PathBuf>,
+    /// Velocidade do utilizador / velocidade original (ex.: 0.64 = 64 %)
+    pub tempo_ratio: Option<f32>,
+    /// Regularidade do ritmo em ms (menor = melhor)
+    pub spread_ms: f32,
+    /// Pausas para pensar/corrigir
+    pub hesitations: usize,
+    /// Trecho da música coberto (tempo do original)
+    pub covered: Option<(Duration, Duration)>,
 }
 
 impl Take {
@@ -128,9 +144,58 @@ impl TakeStore {
             missed: report.missed,
             extra: report.extra,
             offset_ms: report.mean_offset_ms,
+            info: TakeExtra {
+                spread_ms: report.offset_spread_ms,
+                hesitations: report.hesitations,
+                ..Default::default()
+            },
         };
         std::fs::write(dir.join(format!("{recorded_at}.txt")), meta_to_text(&take))?;
         Ok(Some(take))
+    }
+
+    /// Importa uma gravação externa: copia o ficheiro tal como está e guarda os
+    /// resultados do alinhamento. Ver `recording::import`.
+    pub fn import_copy(
+        &self,
+        song: &Path,
+        src: &Path,
+        recorded_at: u64,
+        played: &[PlayedNote],
+        a: &super::align::Alignment,
+    ) -> anyhow::Result<Take> {
+        let dir = self.song_dir(song);
+        std::fs::create_dir_all(&dir)?;
+        let mut recorded_at = recorded_at;
+        while dir.join(format!("{recorded_at}.mid")).exists() {
+            recorded_at += 1;
+        }
+        let midi_path = dir.join(format!("{recorded_at}.mid"));
+        std::fs::copy(src, &midi_path)?;
+
+        let first = played.iter().map(|n| n.start).min().unwrap_or_default();
+        let last = played.iter().map(|n| n.end).max().unwrap_or_default();
+        let r = &a.report;
+        let take = Take {
+            midi_path,
+            song: song.to_path_buf(),
+            recorded_at,
+            duration: last.saturating_sub(first),
+            accuracy: r.accuracy,
+            hits: r.hits,
+            missed: r.missed,
+            extra: r.extra,
+            offset_ms: 0.0,
+            info: TakeExtra {
+                source: Some(src.to_path_buf()),
+                tempo_ratio: Some(a.tempo_ratio),
+                spread_ms: r.offset_spread_ms,
+                hesitations: r.hesitations,
+                covered: Some((a.covered_start, a.covered_end)),
+            },
+        };
+        std::fs::write(dir.join(format!("{recorded_at}.txt")), meta_to_text(&take))?;
+        Ok(take)
     }
 
     /// Gravações de uma música, da mais recente para a mais antiga.
@@ -193,16 +258,28 @@ impl TakeStore {
 }
 
 fn meta_to_text(t: &Take) -> String {
-    format!(
-        "song\t{}\nduration_ms\t{}\naccuracy\t{}\nhits\t{}\nmissed\t{}\nextra\t{}\noffset_ms\t{}\n",
+    let mut s = format!(
+        "song\t{}\nduration_ms\t{}\naccuracy\t{}\nhits\t{}\nmissed\t{}\nextra\t{}\noffset_ms\t{}\nspread_ms\t{}\nhesitations\t{}\n",
         t.song.display(),
         t.duration.as_millis(),
         t.accuracy,
         t.hits,
         t.missed,
         t.extra,
-        t.offset_ms
-    )
+        t.offset_ms,
+        t.info.spread_ms,
+        t.info.hesitations,
+    );
+    if let Some(src) = &t.info.source {
+        s.push_str(&format!("source\t{}\n", src.display()));
+    }
+    if let Some(r) = t.info.tempo_ratio {
+        s.push_str(&format!("tempo_ratio\t{r}\n"));
+    }
+    if let Some((a, b)) = t.info.covered {
+        s.push_str(&format!("covered_ms\t{}-{}\n", a.as_millis(), b.as_millis()));
+    }
+    s
 }
 
 fn meta_from_text(text: &str, midi_path: PathBuf, recorded_at: u64) -> Option<Take> {
@@ -216,6 +293,7 @@ fn meta_from_text(text: &str, midi_path: PathBuf, recorded_at: u64) -> Option<Ta
         missed: 0,
         extra: 0,
         offset_ms: 0.0,
+        info: TakeExtra::default(),
     };
     for line in text.lines() {
         let Some((k, v)) = line.split_once('\t') else { continue };
@@ -227,6 +305,17 @@ fn meta_from_text(text: &str, midi_path: PathBuf, recorded_at: u64) -> Option<Ta
             "missed" => take.missed = v.parse().unwrap_or(0),
             "extra" => take.extra = v.parse().unwrap_or(0),
             "offset_ms" => take.offset_ms = v.parse().unwrap_or(0.0),
+            "source" => take.info.source = Some(PathBuf::from(v)),
+            "tempo_ratio" => take.info.tempo_ratio = v.parse().ok(),
+            "spread_ms" => take.info.spread_ms = v.parse().unwrap_or(0.0),
+            "hesitations" => take.info.hesitations = v.parse().unwrap_or(0),
+            "covered_ms" => {
+                if let Some((a, b)) = v.split_once('-')
+                    && let (Ok(a), Ok(b)) = (a.parse(), b.parse())
+                {
+                    take.info.covered = Some((Duration::from_millis(a), Duration::from_millis(b)));
+                }
+            }
             _ => {}
         }
     }
@@ -343,6 +432,7 @@ mod tests {
             missed: 0,
             extra: 0,
             offset_ms: 0.0,
+            info: TakeExtra::default(),
         };
         let label = t.date_label();
         assert_eq!(label, "18/11/2026 11:06");

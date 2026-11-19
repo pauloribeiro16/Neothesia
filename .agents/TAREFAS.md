@@ -19,11 +19,12 @@ O B passa as tarefas para `em revisão` quando acaba. O A revê, faz o merge e s
 | A13 | A | Notas "fantasma" no ecrã de tocar (comparar gravação com original) | por fazer |
 | A14 | A | `midi_tools/meta.rs` (metadados + cache) e `midi_tools/edit.rs` (edição) com testes | por fazer |
 | A15 | A | Cores do dropdown do `nuon` a partir da paleta | por fazer |
+| A16 | A | Comparação por alinhamento (`align.rs`) + importação de pastas ligadas (`import.rs`) + `pretty_title` | feito |
 | **B4** | B | Tradução PT-PT de `locals.rs` | feito |
-| **B6** | B | Biblioteca nova (`library_page.rs`) | em curso |
-| **B5** | B | Menu principal novo (`main_page.rs`) | por fazer |
-| **B1** | B | Definições (`settings.rs`) com tema e widgets | por fazer |
-| **B2** | B | Faixas (`tracks.rs`) com tema e widgets | por fazer |
+| **B6** | B | Biblioteca nova (`library_page.rs`) | em revisão |
+| **B5** | B | Menu principal novo (`main_page.rs`) | em revisão |
+| **B1** | B | Definições (`settings.rs`) com tema e widgets | em revisão |
+| **B2** | B | Faixas (`tracks.rs`) com tema e widgets | em curso |
 | **B3** | B | Barra de cima do ecrã de tocar (`top_bar/`) | por fazer |
 | **B7** | B | Ecrã de resultado (`results_page.rs`) | por fazer |
 | **B8** | B | Gravações de uma música (`recordings_page.rs`) + gráfico de evolução | por fazer |
@@ -144,3 +145,13 @@ Já existe uma **versão inicial funcional** feita pelo A (`recordings_page.rs`)
 - Página nova `stats_page.rs`, com o encaminhamento pedido ao A (eu acrescento `Page::Stats`).
 - Dados: `ctx.takes.list_all()` dá todas as gravações. Calcula tempo total tocado (soma das `duration`), número de gravações, músicas diferentes, melhor precisão por música (top 5) e dias seguidos com gravações (a partir de `recorded_at`).
 - Cartões grandes com números animados (como a precisão em `results_page.rs`) e uma lista "Melhores músicas".
+
+### Novidades para B6/B5/B8 (vindas da A16)
+- **Títulos:** usa `Library::pretty_title(path)` → `(título, Option<compositor>)` nas linhas da biblioteca (título + subtítulo = compositor), no cartão "Continuar" e nos títulos das páginas.
+- **B6, ligar uma pasta de gravações a uma música:** na linha de cada música, um menu ou botão "Ligar pasta de gravações…" (`rfd::AsyncFileDialog::pick_folder`, como em `pick_folder_fut`). Depois chama `ctx.library.link_recordings(pasta, música)` e `crate::recording::import::sync_folder(&ctx.takes, &música, &pasta)`. Se a música já tiver pasta (`ctx.library.linked_folder(&música)`), mostra o nome dela e a opção "Desligar".
+- **B8:**
+  - Seletor de métrica no gráfico de evolução: **Precisão** (`accuracy`), **Andamento** (`info.tempo_ratio`), **Regularidade** (`info.spread_ms`, menor é melhor; inverte o eixo ou mostra o valor) e **Hesitações** (`info.hesitations`).
+  - Singular/plural ("1 hesitação").
+  - Mostrar o trecho como "completa" quando cobre 90 % ou mais da música.
+  - Botão "Sincronizar" que chama `sync_folder` e depois `reload_recordings`.
+- **Utilizador real:** a pasta do Drive `…/Musicas Piano/Chopin` já está ligada à "Waltz in C♯ Minor" (7 gravações importadas). Captura com dados reais: `NEOTHESIA_PAGE=recordings NEOTHESIA_RECORDINGS_SONG="<caminho da valsa>" ./target/release/neothesia`.

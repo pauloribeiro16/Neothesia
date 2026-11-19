@@ -42,8 +42,10 @@ pub struct Report {
     pub accuracy: f32,
     /// Média do desvio nas notas certas: > 0 atrasado, < 0 adiantado
     pub mean_offset_ms: f32,
-    /// Desvio-padrão do desvio (regularidade)
+    /// Regularidade do ritmo em ms (menor = mais regular)
     pub offset_spread_ms: f32,
+    /// Pausas para pensar/corrigir (só calculado no alinhamento livre)
+    pub hesitations: usize,
     /// Estatísticas por compasso (vazio se não foram dados compassos)
     pub sections: Vec<SectionStats>,
 }
@@ -170,6 +172,7 @@ pub fn compare(
         },
         mean_offset_ms: mean,
         offset_spread_ms: spread,
+        hesitations: 0,
         sections,
     }
 }

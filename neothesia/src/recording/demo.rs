@@ -40,6 +40,7 @@ pub fn report(accuracy: f32) -> Report {
         accuracy,
         mean_offset_ms: 23.0,
         offset_spread_ms: 41.0,
+        hesitations: 3,
         sections,
     }
 }
@@ -57,6 +58,7 @@ pub fn session_result() -> SessionResult {
             missed: report.missed,
             extra: report.extra,
             offset_ms: report.mean_offset_ms,
+            info: Default::default(),
         },
         report,
     }

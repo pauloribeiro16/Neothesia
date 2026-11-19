@@ -164,3 +164,15 @@ neothesia/src/midi_tools/
 - A edição **nunca** escreve por cima do original. O destino por omissão é `<nome> (editado).mid` na mesma pasta, e a biblioteca volta a ler a pasta depois de gravar.
 - A cache de metadados fica em `~/.config/neothesia/meta.txt` (linhas `caminho<TAB>mtime<TAB>…`) e é recalculada se o `mtime` mudar.
 - `Difficulty::{Facil, Medio, Dificil}` por notas por segundo (< 2,5 / < 5 / ≥ 5), para a etiqueta na biblioteca.
+
+## 9. Gravações livres e importação
+
+Gravações feitas fora do ecrã de tocar (por exemplo no MusicaApp, guardadas no Google Drive) não estão alinhadas no tempo com o original: o utilizador toca mais devagar, começa com silêncio ou toca só um trecho.
+
+- **`recording/align.rs`**: alinhamento **semi-global por acordes** (programação dinâmica). Independente do andamento, o trecho pode começar e acabar em qualquer ponto e a ordem das notas dentro de um acorde não importa. Devolve `Alignment { report, tempo_ratio, covered_start, covered_end }`.
+  - Regularidade: mediana do desvio local (reta ajustada a ±8 acordes, o que ignora o rubato).
+  - Hesitações: acordes que chegam mais de 350 ms atrasados em relação aos vizinhos.
+- **`recording/import.rs`**: `Library::links` liga uma pasta a uma música (linha `link<TAB>pasta<TAB>música` no `library.txt`). No arranque, `sync_all` importa os `.mid` novos (com 20 ou mais notas), copia-os para o `TakeStore` (o original fica intocado) e guarda `source`, `tempo_ratio`, `covered_ms`, `spread_ms` e `hesitations`. Não importa o mesmo ficheiro duas vezes.
+- As pastas ligadas são excluídas da lista de músicas da biblioteca.
+- **`Library::pretty_title(path)`** dá `(título, compositor)` limpos a partir do nome do ficheiro. Usa-o em toda a UI em vez de `display_name`.
+- `widgets::line_chart` ajusta a escala aos valores (`auto_range`). Para valores fixos em 0..1, usa `line_chart_scaled`.

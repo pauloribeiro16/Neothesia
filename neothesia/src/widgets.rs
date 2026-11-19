@@ -575,8 +575,32 @@ pub fn bar_chart(
 
 /// Gráfico de linha com pontos (ex.: precisão ao longo das gravações).
 /// `values` em 0..1, desenhados da esquerda (mais antigo) para a direita.
-/// Devolve o índice do ponto sob o rato, se houver.
+/// A escala ajusta-se aos valores (com margem), para se verem variações
+/// pequenas (ex.: 93 % → 96 %). Devolve o índice do ponto sob o rato, se houver.
 pub fn line_chart(ui: &mut nuon::Ui, id: impl Hash, w: f32, h: f32, values: &[f32]) -> Option<usize> {
+    let (lo, hi) = auto_range(values);
+    let scaled: Vec<f32> = values.iter().map(|v| (v - lo) / (hi - lo)).collect();
+    line_chart_scaled(ui, id, w, h, &scaled)
+}
+
+/// Intervalo a mostrar para `values`: mínimo e máximo com 25 % de margem,
+/// pelo menos 10 pontos percentuais de amplitude, dentro de 0..1.
+pub fn auto_range(values: &[f32]) -> (f32, f32) {
+    if values.is_empty() {
+        return (0.0, 1.0);
+    }
+    let min = values.iter().cloned().fold(f32::MAX, f32::min);
+    let max = values.iter().cloned().fold(f32::MIN, f32::max);
+    let span = (max - min).max(0.10);
+    let mid = (max + min) / 2.0;
+    let lo = (mid - span * 0.75).max(0.0);
+    let hi = (lo + span * 1.5).min(1.0);
+    let lo = (hi - span * 1.5).max(0.0);
+    (lo, hi)
+}
+
+/// Como `line_chart`, mas com `values` já normalizados em 0..1 (sem auto-escala).
+pub fn line_chart_scaled(ui: &mut nuon::Ui, id: impl Hash, w: f32, h: f32, values: &[f32]) -> Option<usize> {
     let id = wid(id);
     let grow = theme::ease_out(theme::anim(ui, ("line_grow", id.as_raw()), 1.0, 0.06));
 
@@ -590,8 +614,8 @@ pub fn line_chart(ui: &mut nuon::Ui, id: impl Hash, w: f32, h: f32, values: &[f3
     let inner_w = w - pad * 2.0;
     let inner_h = h - pad * 2.0;
 
-    // Linhas de referência a 50 % e 100 %
-    for frac in [0.5_f32, 1.0] {
+    // Linhas de referência (topo, meio, base)
+    for frac in [0.0_f32, 0.5, 1.0] {
         nuon::quad()
             .pos(pad, pad + inner_h * (1.0 - frac))
             .size(inner_w, 1.0)

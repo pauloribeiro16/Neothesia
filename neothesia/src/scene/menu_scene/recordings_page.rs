@@ -7,6 +7,16 @@ use crate::{
     NeothesiaEvent, context::Context, icons, library::Library, song::Song, theme, widgets,
 };
 
+/// Uma gravação é "parcial" se cobre menos de metade do maior trecho gravado
+/// desta música (não deve ganhar "melhor" a gravações completas).
+fn is_partial(t: &crate::recording::Take, all: &[crate::recording::Take]) -> bool {
+    let len = |t: &crate::recording::Take| {
+        t.info.covered.map(|(a, b)| b.saturating_sub(a).as_secs_f32()).unwrap_or(0.0)
+    };
+    let longest = all.iter().map(len).fold(0.0, f32::max);
+    longest > 0.0 && len(t) < longest * 0.5
+}
+
 enum Act {
     Back,
     View(usize),
@@ -34,11 +44,11 @@ impl super::MenuScene {
         let x0 = (win_w - body_w) / 2.0;
         let mut act: Option<Act> = None;
 
-        let title = self
+        let (title, composer) = self
             .state
             .recordings_song
             .as_deref()
-            .map(Library::display_name)
+            .map(Library::pretty_title)
             .unwrap_or_default();
         let takes = &self.state.recordings;
 
@@ -51,7 +61,17 @@ impl super::MenuScene {
                 .text_justify(nuon::TextAlign::Start)
                 .text(theme::fit_text(&format!("Gravações · {title}"), body_w, theme::FONT_XL))
                 .build(ui);
-            nuon::translate().y(52.0).add_to_current(ui);
+            if let Some(c) = &composer {
+                nuon::label()
+                    .pos(0.0, 36.0)
+                    .size(body_w, 20.0)
+                    .font_size(theme::FONT_S)
+                    .color(theme::text_muted())
+                    .text_justify(nuon::TextAlign::Start)
+                    .text(c)
+                    .build(ui);
+            }
+            nuon::translate().y(64.0).add_to_current(ui);
 
             if takes.is_empty() {
                 widgets::hint(
@@ -90,21 +110,39 @@ impl super::MenuScene {
                 .build(ui, |ui| {
                     let row_w = body_w - 14.0;
                     let trailing = 36.0 * 2.0 + theme::SPACE_S * 3.0;
-                    let best = takes.iter().map(|t| t.accuracy).fold(0.0, f32::max);
+                    let best = takes
+                        .iter()
+                        .filter(|t| !is_partial(t, takes))
+                        .map(|t| t.accuracy)
+                        .fold(0.0, f32::max);
                     for (i, t) in takes.iter().enumerate() {
-                        let subtitle = format!(
-                            "{} certas · {} falhadas · {} a mais · {}:{:02}",
-                            t.hits,
-                            t.missed,
-                            t.extra,
+                        let mut subtitle = format!(
+                            "{} certas · {} falhadas · {} a mais",
+                            t.hits, t.missed, t.extra
+                        );
+                        if let Some((a, b)) = t.info.covered {
+                            subtitle.push_str(&format!(
+                                " · trecho {}:{:02}–{}:{:02}",
+                                a.as_secs() / 60,
+                                a.as_secs() % 60,
+                                b.as_secs() / 60,
+                                b.as_secs() % 60
+                            ));
+                        }
+                        if let Some(r) = t.info.tempo_ratio {
+                            subtitle.push_str(&format!(" · andamento {:.0}%", r * 100.0));
+                        }
+                        subtitle.push_str(&format!(
+                            " · {} hesitações · {}:{:02}",
+                            t.info.hesitations,
                             t.duration.as_secs() / 60,
                             t.duration.as_secs() % 60
-                        );
+                        ));
                         let title = format!(
                             "{:.0}%   {}{}",
                             t.accuracy * 100.0,
                             t.date_label(),
-                            if t.accuracy == best { "   ★ melhor" } else { "" }
+                            if t.accuracy == best && !is_partial(t, takes) { "   ★ melhor" } else { "" }
                         );
                         nuon::translate().build(ui, |ui| {
                             if widgets::list_row(("rec_row", i), row_w, &title)

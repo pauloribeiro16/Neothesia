@@ -1,8 +1,10 @@
 //! Gravações do que o utilizador toca e comparação com o original.
 //! Ver `ARQUITETURA.md` › 7.
 
+pub mod align;
 pub mod compare;
 pub mod demo;
+pub mod import;
 pub mod recorder;
 pub mod store;
 
