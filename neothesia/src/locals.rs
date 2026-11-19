@@ -500,6 +500,190 @@ pub mod settings {
     }
 }
 
+pub mod library {
+    use super::LOCAL;
+
+    pub fn title() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Biblioteka".into(),
+            "de" => "Bibliothek".into(),
+            "pt" => "Biblioteca".into(),
+            _ => "Library".into(),
+        }
+    }
+
+    pub fn musics() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Utwory".into(),
+            "de" => "Stücke".into(),
+            "pt" => "Músicas".into(),
+            _ => "Songs".into(),
+        }
+    }
+
+    pub fn playlist() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Playlista".into(),
+            "de" => "Wiedergabeliste".into(),
+            "pt" => "Playlist".into(),
+            _ => "Playlist".into(),
+        }
+    }
+
+    pub fn add_folder() -> String {
+        match LOCAL.as_str() {
+            "pl" => "+ Folder".into(),
+            "de" => "+ Ordner".into(),
+            "pt" => "+ Pasta".into(),
+            _ => "+ Folder".into(),
+        }
+    }
+
+    pub fn add_folder_action() -> String {
+        match LOCAL.as_str() {
+            "pl" => "+ Dodaj folder".into(),
+            "de" => "+ Ordner hinzufügen".into(),
+            "pt" => "+ Adicionar pasta".into(),
+            _ => "+ Add folder".into(),
+        }
+    }
+
+    pub fn refresh() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Odśwież".into(),
+            "de" => "Aktualisieren".into(),
+            "pt" => "Atualizar".into(),
+            _ => "Refresh".into(),
+        }
+    }
+
+    pub fn clear() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Wyczyść".into(),
+            "de" => "Leeren".into(),
+            "pt" => "Limpar".into(),
+            _ => "Clear".into(),
+        }
+    }
+
+    pub fn play_playlist() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Odtwórz playlistę".into(),
+            "de" => "Wiedergabeliste abspielen".into(),
+            "pt" => "Tocar playlist".into(),
+            _ => "Play playlist".into(),
+        }
+    }
+
+    pub fn add_visible() -> String {
+        match LOCAL.as_str() {
+            "pl" => "+ Widoczne".into(),
+            "de" => "+ Sichtbare".into(),
+            "pt" => "+ Visíveis".into(),
+            _ => "+ Visible".into(),
+        }
+    }
+
+    pub fn search_placeholder() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Pisz, aby wyszukiwać…".into(),
+            "de" => "Zum Suchen schreiben…".into(),
+            "pt" => "Escreve para pesquisar…".into(),
+            _ => "Type to search…".into(),
+        }
+    }
+
+    pub fn empty_hint() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Biblioteka jest pusta — dodaj folder z plikami MIDI lub przeciągnij go tutaj".into(),
+            "de" => "Bibliothek ist leer — füge einen Ordner mit MIDI-Dateien hinzu oder ziehe ihn hierher".into(),
+            "pt" => "Biblioteca vazia — adiciona uma pasta com músicas (.mid) ou arrasta-a para aqui".into(),
+            _ => "Library is empty — add a folder with songs (.mid) or drag one here".into(),
+        }
+    }
+
+    pub fn no_results() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Nenhum utwór odpowiada wyszukiwaniu".into(),
+            "de" => "Keine Stücke entsprechen der Suche".into(),
+            "pt" => "Nenhuma música corresponde à pesquisa".into(),
+            _ => "No songs match your search".into(),
+        }
+    }
+
+    pub fn queue_empty_hint() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Użyj przycisku +, aby dodać utwory".into(),
+            "de" => "Verwende die Taste +, um Stücke hinzuzufügen".into(),
+            "pt" => "Usa o botão + para juntar músicas".into(),
+            _ => "Use the + button to add songs".into(),
+        }
+    }
+
+    pub fn stats(visible: usize, total: usize, folders: usize) -> String {
+        match LOCAL.as_str() {
+            "pl" => format!("Biblioteka · {visible} z {total} utworów · {folders} folder(-ów)"),
+            "de" => format!("Bibliothek · {visible} von {total} Stücken · {folders} Ordner"),
+            "pt" => format!("Biblioteca · {visible} de {total} músicas · {folders} pasta(s)"),
+            _ => format!("Library · {visible} of {total} songs · {folders} folder(s)"),
+        }
+    }
+
+    pub fn play_now() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Odtwórz teraz".into(),
+            "de" => "Jetzt abspielen".into(),
+            "pt" => "Tocar agora".into(),
+            _ => "Play now".into(),
+        }
+    }
+
+    pub fn enqueue() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Dodaj do playlisty".into(),
+            "de" => "Zur Wiedergabeliste hinzufügen".into(),
+            "pt" => "Juntar à playlist".into(),
+            _ => "Add to playlist".into(),
+        }
+    }
+
+    pub fn queue_up() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Przenieś w górę".into(),
+            "de" => "Nach oben verschieben".into(),
+            "pt" => "Mover para cima".into(),
+            _ => "Move up".into(),
+        }
+    }
+
+    pub fn queue_down() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Przenieś w dół".into(),
+            "de" => "Nach unten verschieben".into(),
+            "pt" => "Mover para baixo".into(),
+            _ => "Move down".into(),
+        }
+    }
+
+    pub fn remove() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Usuń".into(),
+            "de" => "Entfernen".into(),
+            "pt" => "Remover".into(),
+            _ => "Remove".into(),
+        }
+    }
+
+    pub fn remove_folder() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Usuń folder".into(),
+            "de" => "Ordner entfernen".into(),
+            "pt" => "Remover pasta".into(),
+            _ => "Remove folder".into(),
+        }
+    }
+}
+
 pub mod playing {
     use super::LOCAL;
 
