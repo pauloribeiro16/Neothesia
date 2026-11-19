@@ -10,7 +10,7 @@ O B passa as tarefas para `em revisão` quando acaba. O A revê, faz o merge e s
 | A3 | A | Componentes `widgets.rs` | feito |
 | A4 | A | `ARQUITETURA.md` + separar `main_page.rs` e o teclado da biblioteca | feito |
 | A6 | A | API da playlist (`previous`, `has_next`, `position_label`…) | feito |
-| A7 | A | Favoritos, recentes e `lib_cursor` na `Library`/`UiState` (para B5/B6) | por fazer |
+| A7 | A | Favoritos, recentes e `lib_cursor` na `Library`/`UiState` (para B5/B6) | feito |
 | A8 | A | Rever e fazer merge do trabalho do B, reinstalar a app | contínuo |
 | **B4** | B | Tradução PT-PT de `locals.rs` | em curso |
 | **B6** | B | Biblioteca nova (`library_page.rs`) | por fazer |

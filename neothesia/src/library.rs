@@ -48,7 +48,13 @@ pub struct Library {
     pub queue: Vec<PathBuf>,
     /// Posição da playlist que está a tocar (None = a tocar fora da playlist)
     pub queue_pos: Option<usize>,
+    /// Músicas marcadas com ★
+    pub favorites: Vec<PathBuf>,
+    /// Últimas músicas tocadas, a mais recente primeiro (máx. `MAX_RECENT`)
+    pub recent: Vec<PathBuf>,
 }
+
+pub const MAX_RECENT: usize = 20;
 
 fn store_path() -> PathBuf {
     let base = std::env::var_os("HOME")
@@ -76,6 +82,8 @@ impl Library {
                 match kind {
                     "folder" => lib.folders.push(PathBuf::from(path)),
                     "queue" => lib.queue.push(PathBuf::from(path)),
+                    "fav" => lib.favorites.push(PathBuf::from(path)),
+                    "recent" => lib.recent.push(PathBuf::from(path)),
                     _ => {}
                 }
             }
@@ -92,6 +100,12 @@ impl Library {
         }
         for q in &self.queue {
             out.push_str(&format!("queue\t{}\n", q.display()));
+        }
+        for f in &self.favorites {
+            out.push_str(&format!("fav\t{}\n", f.display()));
+        }
+        for r in &self.recent {
+            out.push_str(&format!("recent\t{}\n", r.display()));
         }
 
         let path = store_path();
@@ -220,6 +234,27 @@ impl Library {
             .map(|p| format!("{} de {}", p + 1, self.queue.len()))
     }
 
+    pub fn is_favorite(&self, path: &Path) -> bool {
+        self.favorites.iter().any(|f| f == path)
+    }
+
+    pub fn toggle_favorite(&mut self, path: &Path) {
+        if let Some(i) = self.favorites.iter().position(|f| f == path) {
+            self.favorites.remove(i);
+        } else {
+            self.favorites.push(path.to_path_buf());
+        }
+        self.save();
+    }
+
+    /// Regista que `path` foi tocada (chamado sempre que uma música começa).
+    pub fn mark_played(&mut self, path: &Path) {
+        self.recent.retain(|r| r != path);
+        self.recent.insert(0, path.to_path_buf());
+        self.recent.truncate(MAX_RECENT);
+        self.save();
+    }
+
     pub fn stop_playlist(&mut self) {
         self.queue_pos = None;
     }
@@ -246,5 +281,45 @@ fn scan_dir(dir: &Path, depth: usize, out: &mut Vec<PathBuf>) {
         } else if is_midi_file(&path) {
             out.push(path);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn lib_with(queue: &[&str]) -> Library {
+        Library {
+            queue: queue.iter().map(PathBuf::from).collect(),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn advance_and_previous_walk_the_queue() {
+        let mut lib = lib_with(&["a.mid", "b.mid", "c.mid"]);
+        lib.queue_pos = Some(0);
+        assert_eq!(lib.position_label().as_deref(), Some("1 de 3"));
+        assert!(!lib.has_previous());
+        assert_eq!(lib.advance(), Some(PathBuf::from("b.mid")));
+        assert_eq!(lib.advance(), Some(PathBuf::from("c.mid")));
+        assert!(!lib.has_next());
+        assert_eq!(lib.previous(), Some(PathBuf::from("b.mid")));
+        assert_eq!(lib.queue_pos, Some(1));
+    }
+
+    #[test]
+    fn advance_past_end_stops_playlist() {
+        let mut lib = lib_with(&["a.mid"]);
+        lib.queue_pos = Some(0);
+        assert_eq!(lib.advance(), None);
+        assert_eq!(lib.queue_pos, None);
+    }
+
+    #[test]
+    fn search_matches_all_words_case_insensitive() {
+        let s = LibSong::new(PathBuf::from("/x/Chopin - Nocturne Op.9.mid"));
+        assert!(s.matches("chopin noct"));
+        assert!(!s.matches("chopin waltz"));
     }
 }

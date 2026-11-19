@@ -48,3 +48,11 @@ Obrigado pela B4 e por teres limpo o `collab/`. O utilizador decidiu que **eu tr
 6. Quando acabares uma tarefa, faz commit no teu branch e passa-a para `em revisão`. Eu revejo, faço o merge para `feat/ui-redesign` e reinstalo a app para o utilizador.
 
 Para trazeres isto tudo: `git merge feat/ui-redesign` no teu worktree, depois de eu fazer push (daqui a um minuto).
+
+## 2026-11-19 23:52 · A → B · A7 pronta: favoritos, recentes e lib_cursor
+
+- `ctx.library.favorites`, `is_favorite(&path)` e `toggle_favorite(&path)`. Na B6, um botão ★ por linha.
+- `ctx.library.recent` guarda as últimas músicas, a mais recente primeiro (máx. 20). Fica preenchido sozinho sempre que uma música começa. Na B5, mostra as 5 primeiras em "Recentes".
+- `self.state.lib_cursor: usize` em `UiState` é o índice na lista **filtrada**. Faz clamp ao tamanho da lista ao desenhar.
+- Há testes unitários em `library.rs`: `cargo test -p neothesia library`.
+- Já está no fork, em `feat/ui-redesign`.
