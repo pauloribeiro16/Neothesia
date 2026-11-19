@@ -102,8 +102,14 @@ impl MenuScene {
                 ctx.last_result = Some(crate::recording::demo::session_result());
             }
             Some("recordings") => {
-                crate::recording::demo::seed_takes(ctx);
-                iced_state.open_recordings(ctx, crate::recording::demo::song_path());
+                // NEOTHESIA_RECORDINGS_SONG=/caminho/musica.mid mostra gravações reais
+                match std::env::var_os("NEOTHESIA_RECORDINGS_SONG") {
+                    Some(song) => iced_state.open_recordings(ctx, song.into()),
+                    None => {
+                        crate::recording::demo::seed_takes(ctx);
+                        iced_state.open_recordings(ctx, crate::recording::demo::song_path());
+                    }
+                }
             }
             _ => {}
         }
@@ -340,6 +346,13 @@ impl Scene for MenuScene {
 
                 if event.key_pressed(Key::Character("f")) {
                     state::freeplay(&self.state, ctx);
+                }
+
+                // G: gravações da última música aberta
+                if event.key_pressed(Key::Character("g"))
+                    && let Some(song) = ctx.config.last_opened_song().cloned()
+                {
+                    self.state.open_recordings(ctx, song);
                 }
             }
             Page::Library => self.library_page_window_event(ctx, event),

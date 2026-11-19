@@ -52,6 +52,10 @@ pub struct Library {
     pub favorites: Vec<PathBuf>,
     /// Últimas músicas tocadas, a mais recente primeiro (máx. `MAX_RECENT`)
     pub recent: Vec<PathBuf>,
+    /// Pastas de gravações externas ligadas a uma música: (pasta, música).
+    /// Os `.mid` dessas pastas são importados como gravações (ver
+    /// `recording::import`) e não aparecem como músicas na biblioteca.
+    pub links: Vec<(PathBuf, PathBuf)>,
 }
 
 pub const MAX_RECENT: usize = 20;
@@ -84,6 +88,11 @@ impl Library {
                     "queue" => lib.queue.push(PathBuf::from(path)),
                     "fav" => lib.favorites.push(PathBuf::from(path)),
                     "recent" => lib.recent.push(PathBuf::from(path)),
+                    "link" => {
+                        if let Some((folder, song)) = path.split_once('\t') {
+                            lib.links.push((PathBuf::from(folder), PathBuf::from(song)));
+                        }
+                    }
                     _ => {}
                 }
             }
@@ -107,6 +116,9 @@ impl Library {
         for r in &self.recent {
             out.push_str(&format!("recent\t{}\n", r.display()));
         }
+        for (folder, song) in &self.links {
+            out.push_str(&format!("link\t{}\t{}\n", folder.display(), song.display()));
+        }
 
         let path = store_path();
         if let Some(parent) = path.parent() {
@@ -122,6 +134,7 @@ impl Library {
         for folder in &self.folders {
             scan_dir(folder, 0, &mut found);
         }
+        found.retain(|p| !self.links.iter().any(|(folder, _)| p.starts_with(folder)));
         found.sort_by_key(|p| p.to_string_lossy().to_lowercase());
         found.dedup();
         self.songs = found.into_iter().map(LibSong::new).collect();
@@ -234,6 +247,26 @@ impl Library {
             .map(|p| format!("{} de {}", p + 1, self.queue.len()))
     }
 
+    /// Liga uma pasta de gravações externas a uma música (substitui uma ligação
+    /// anterior da mesma pasta).
+    pub fn link_recordings(&mut self, folder: PathBuf, song: PathBuf) {
+        self.links.retain(|(f, _)| f != &folder);
+        self.links.push((folder, song));
+        self.save();
+        self.rescan();
+    }
+
+    pub fn unlink_recordings(&mut self, folder: &Path) {
+        self.links.retain(|(f, _)| f != folder);
+        self.save();
+        self.rescan();
+    }
+
+    /// Pasta de gravações ligada a esta música, se houver.
+    pub fn linked_folder(&self, song: &Path) -> Option<&Path> {
+        self.links.iter().find(|(_, s)| s == song).map(|(f, _)| f.as_path())
+    }
+
     pub fn is_favorite(&self, path: &Path) -> bool {
         self.favorites.iter().any(|f| f == path)
     }
@@ -259,10 +292,60 @@ impl Library {
         self.queue_pos = None;
     }
 
+    /// Título limpo e compositor a partir do nome do ficheiro, ex.:
+    /// "Frédéric François Chopin_(1810 - 1849) - Waltz in C♯ Minor (1)"
+    /// → ("Waltz in C♯ Minor", Some("Frédéric François Chopin")).
+    pub fn pretty_title(path: &Path) -> (String, Option<String>) {
+        pretty_title_of(&Self::display_name(path))
+    }
+
     pub fn display_name(path: &Path) -> String {
         path.file_stem()
             .map(|s| s.to_string_lossy().into_owned())
             .unwrap_or_else(|| path.to_string_lossy().into_owned())
+    }
+}
+
+pub fn pretty_title_of(stem: &str) -> (String, Option<String>) {
+    let stem = stem.replace('_', " ");
+    // Tirar sufixos de cópia: " (1)", " (2)"…
+    let mut s = stem.trim().to_owned();
+    if let Some(i) = s.rfind(" (")
+        && s.ends_with(')')
+        && s[i + 2..s.len() - 1].chars().all(|c| c.is_ascii_digit())
+    {
+        s.truncate(i);
+    }
+    // Tirar grupos entre parênteses com algarismos (datas do compositor)
+    let mut clean = String::with_capacity(s.len());
+    let mut rest = s.as_str();
+    while let Some(i) = rest.find('(') {
+        let Some(j) = rest[i..].find(')') else { break };
+        let inner = &rest[i + 1..i + j];
+        clean.push_str(&rest[..i]);
+        if !inner.chars().any(|c| c.is_ascii_digit()) {
+            clean.push_str(&rest[i..=i + j]);
+        }
+        rest = &rest[i + j + 1..];
+    }
+    clean.push_str(rest);
+    let s = clean.split_whitespace().collect::<Vec<_>>().join(" ");
+    let Some((left, right)) = s.split_once(" - ") else {
+        return (s.trim().to_owned(), None);
+    };
+    // Compositor: tirar datas entre parênteses "(1810 - 1849)"
+    let mut composer = left.trim().to_owned();
+    if let Some(i) = composer.find('(')
+        && composer[i..].chars().any(|c| c.is_ascii_digit())
+    {
+        composer.truncate(i);
+    }
+    let composer = composer.split_whitespace().collect::<Vec<_>>().join(" ");
+    let title = right.trim().to_owned();
+    if composer.is_empty() || title.is_empty() {
+        (s.trim().to_owned(), None)
+    } else {
+        (title, Some(composer))
     }
 }
 
@@ -314,6 +397,23 @@ mod tests {
         lib.queue_pos = Some(0);
         assert_eq!(lib.advance(), None);
         assert_eq!(lib.queue_pos, None);
+    }
+
+    #[test]
+    fn pretty_titles() {
+        assert_eq!(
+            pretty_title_of("Frédéric François Chopin_(1810 - 1849) - Waltz in C♯ Minor (1)"),
+            ("Waltz in C♯ Minor".into(), Some("Frédéric François Chopin".into()))
+        );
+        assert_eq!(
+            pretty_title_of("Piotr Iljicz Czajkowski - Dance of the Sugar Plum Fairy"),
+            ("Dance of the Sugar Plum Fairy".into(), Some("Piotr Iljicz Czajkowski".into()))
+        );
+        assert_eq!(pretty_title_of("Interstellar"), ("Interstellar".into(), None));
+        assert_eq!(
+            pretty_title_of("Claude Debussy_(1862–1918) - Clair de Lune"),
+            ("Clair de Lune".into(), Some("Claude Debussy".into()))
+        );
     }
 
     #[test]
