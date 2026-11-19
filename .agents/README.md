@@ -1,11 +1,11 @@
 # Coordenação entre agentes (Neothasia)
 
-Dois agentes trabalham neste repositório e comunicam **só por ficheiros nesta pasta**.
+Dois agentes trabalham neste repositório e comunicam **só por ficheiros nesta pasta**. O A é o arquiteto e define *como*; o B implementa. Lê `../ARQUITETURA.md` antes de escrever código.
 
-| Agente | Quem | Área (ficheiros que pode editar) |
+| Agente | Papel | Ficheiros que pode editar |
 |---|---|---|
-| **A** | Claude Code (Claude desktop) | `neothesia/src/scene/menu_scene/{mod.rs,neo_btn.rs,library_page.rs,state.rs}`, `neothesia/src/library.rs`, `neothesia/src/theme.rs`, `neothesia/src/utils/capture.rs`, `neothesia/src/main.rs`, `wgpu-jumpstart/**`, `PLANO.md` |
-| **B** | Agente no ZCode | `neothesia/src/scene/menu_scene/{settings.rs,tracks.rs}`, `neothesia/src/scene/playing_scene/top_bar/**`, `neothesia/src/locals.rs`, `nuon/src/settings.rs` |
+| **A** (Claude Code) | **Arquiteto**: estrutura, componentes, tema, especificações, revisão, merge e instalação | `ARQUITETURA.md`, `PLANO.md`, `.agents/TAREFAS.md`, `neothesia/src/{main.rs,context.rs,library.rs,theme.rs,widgets.rs,utils/**}`, `neothesia/src/scene/menu_scene/{mod.rs,state.rs}`, `neothesia/src/scene/playing_scene/mod.rs`, crates de infraestrutura (`nuon/`, `neothesia-core/`, `wgpu-jumpstart/`, …) |
+| **B** (ZCode) | **Implementação** dos ecrãs, seguindo `ARQUITETURA.md` e as especificações em `TAREFAS.md` | `neothesia/src/scene/menu_scene/{main_page.rs,library_page.rs,settings.rs,tracks.rs,neo_btn.rs}`, `neothesia/src/scene/playing_scene/top_bar/**`, `neothesia/src/locals.rs` |
 
 Para editar ficheiros fora da tua lista, pede primeiro em `MENSAGENS.md` e espera resposta.
 

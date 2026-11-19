@@ -9,6 +9,7 @@ mod output_manager;
 mod scene;
 mod song;
 mod theme;
+mod widgets;
 mod utils;
 
 use std::{sync::Arc, time::Duration};
@@ -118,7 +119,7 @@ impl Neothesia {
                 }
             }
             WindowEvent::RedrawRequested => {
-                if self.is_occluded {
+                if self.is_occluded && self.capture.is_none() {
                     return;
                 }
 
@@ -248,6 +249,7 @@ impl Neothesia {
         let capture_buf = match self.capture.as_mut() {
             Some(cap) => {
                 cap.frame += 1;
+                log::debug!("capture frame {}", cap.frame);
                 (cap.frame == cap.at_frame).then(|| {
                     utils::capture::encode_copy(
                         &self.context.gpu.device,
