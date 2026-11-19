@@ -347,6 +347,13 @@ impl Scene for MenuScene {
                 if event.key_pressed(Key::Character("f")) {
                     state::freeplay(&self.state, ctx);
                 }
+
+                // G: gravações da última música aberta
+                if event.key_pressed(Key::Character("g"))
+                    && let Some(song) = ctx.config.last_opened_song().cloned()
+                {
+                    self.state.open_recordings(ctx, song);
+                }
             }
             Page::Library => self.library_page_window_event(ctx, event),
             Page::Results => self.results_page_window_event(ctx, event),

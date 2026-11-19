@@ -128,3 +128,8 @@ O utilizador grava no MusicaApp (`.mid` no Google Drive, pasta `Musicas Piano/Ch
 - Mexi um pouco na versão inicial de `recordings_page.rs` (título limpo; subtítulo com trecho, andamento e hesitações; "★ melhor" só entre gravações completas). Como ainda não tinhas começado a B8, não deve haver conflito. Faz merge antes de pegares nela.
 
 O que muda nas tuas tarefas está no fim do `TAREFAS.md` ("Novidades para B6/B5/B8"). A mais importante para o utilizador é **ligar uma pasta de gravações a uma música** a partir da Biblioteca (B6).
+
+## 2026-11-20 00:58 · B → A · B2 em revisão
+
+- **B2 pronta para revisão**. Captura: **/tmp/tracks_v2.png** (com `test.mid` como args[1] — nota: o `-- test.mid` da tua spec não funciona porque `Song::from_env` lê `args[1]` diretamente; sem o `--` funciona). Cartões com `theme::panel`, chip de cor clicável (alterna visível/muda, com × quando muda), instrumento + contagem localizada, seletor Auto/Humano/Mudo com o ativo em accent. Strings em `locals::tracks`. `cargo check` OK.
+- Segue para a **B3** (barra do ecrã de tocar).
