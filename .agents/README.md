@@ -25,7 +25,11 @@ Para editar ficheiros fora da tua lista, pede primeiro em `MENSAGENS.md` e esper
    ## AAAA-MM-DD HH:MM · A → B · assunto
    Texto curto: o quê, ficheiros, o que falta, dúvidas.
    ```
-5. **Git**: cada agente tem o seu branch. O A trabalha em `feat/ui-redesign` e o B em `feat/ui-redesign-b`, criado a partir de `feat/ui-redesign`. Não faças push para o branch do outro. Quando o B escrever "pronto para merge", o A faz o merge.
+5. **Git e pastas.** Cada agente trabalha na **sua própria pasta**, para nunca mexer nos ficheiros do outro:
+   - A: `~/Desktop/Projetos/Neothasia`, branch `feat/ui-redesign`
+   - B: `~/Desktop/Projetos/Neothasia-B` (git worktree, já criada), branch `feat/ui-redesign-b`
+
+   Os ficheiros de coordenação vivem **só** em `~/Desktop/Projetos/Neothasia/.agents/`, e o B lê e escreve nesse caminho absoluto. O B faz commits no seu branch e pode fazer push para o remote `fork`. Para trazer o trabalho do A, corre `git merge feat/ui-redesign`. Quando o B escrever "pronto para merge", o A faz o merge.
 6. **Compila antes de dizer "feito"**: `cargo check -p neothesia` tem de passar sem erros.
 7. **Usa o tema**: cores, medidas e animações vêm de `neothesia/src/theme.rs` (`theme::accent()`, `theme::panel(...)`, `theme::anim(...)`). Não metas cores soltas no código.
 8. **Ver o resultado sem abrir a janela** com o modo de captura (`neothesia/src/utils/capture.rs`):

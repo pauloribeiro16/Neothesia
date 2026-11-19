@@ -20,4 +20,4 @@ Para pegar numa tarefa, muda o estado e escreve uma linha em `MENSAGENS.md`.
 
 - Começa por **B4** e **B1**, que não dependem de nada.
 - Lê `neothesia/src/theme.rs` antes de desenhar. O estilo de referência é `library_page.rs` (painéis, linhas e hover).
-- Cria o teu branch: `git checkout feat/ui-redesign && git checkout -b feat/ui-redesign-b`.
+- A tua pasta é `~/Desktop/Projetos/Neothasia-B` (branch `feat/ui-redesign-b`, já criada). Não trabalhes na pasta do A.
