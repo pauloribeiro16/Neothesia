@@ -143,6 +143,32 @@ fn pick_folder_fut() -> BoxFuture<MsgFn> {
 }
 
 impl super::MenuScene {
+    /// Teclado da página Biblioteca (chamado por `MenuScene::window_event`).
+    pub fn library_page_window_event(
+        &mut self,
+        _ctx: &mut Context,
+        event: &winit::event::WindowEvent,
+    ) {
+        use winit::{event::WindowEvent, keyboard::{Key, NamedKey}};
+        if let WindowEvent::KeyboardInput { event: key, .. } = event
+            && key.state.is_pressed()
+        {
+            if key.logical_key == Key::Named(NamedKey::Escape) {
+                if self.state.search.is_empty() {
+                    self.state.go_back();
+                } else {
+                    self.state.search.clear();
+                }
+            } else if key.logical_key == Key::Named(NamedKey::Backspace) {
+                self.state.search.pop();
+            } else if let Some(text) = &key.text {
+                self.state
+                    .search
+                    .extend(text.chars().filter(|c| !c.is_control()));
+            }
+        }
+    }
+
     pub fn library_page_ui(&mut self, ctx: &mut Context, ui: &mut nuon::Ui) {
         let win_w = ctx.window_state.logical_size.width;
         let win_h = ctx.window_state.logical_size.height;
