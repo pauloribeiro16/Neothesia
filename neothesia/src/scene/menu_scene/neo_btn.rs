@@ -64,29 +64,46 @@ impl NeoBtn {
 
         let event = nuon::click_area(id).size(w, h).build(ui);
 
-        let (bg, accent) = if event.is_hovered() || event.is_pressed() {
-            (
-                nuon::Color::new_u8(9, 9, 9, 0.6),
-                nuon::Color::new_u8(56, 145, 255, 1.0),
-            )
-        } else {
-            (
-                nuon::Color::new_u8(17, 17, 17, 0.6),
-                nuon::Color::new_u8(160, 81, 255, 1.0),
-            )
+        // Animação de hover: `t` sobe/desce suavemente entre 0 e 1
+        let hovered = event.is_hovered() || event.is_pressed();
+        let anim_id = nuon::Id::hash_with(|hs| {
+            use std::hash::Hash;
+            "neo_btn_hover".hash(hs);
+            id.as_raw().hash(hs);
+        });
+        let t = {
+            let t: &mut f32 = ui.data(anim_id);
+            let target = if hovered { 1.0 } else { 0.0 };
+            *t += (target - *t) * 0.22;
+            if (target - *t).abs() < 0.002 {
+                *t = target;
+            }
+            *t
         };
 
-        nuon::quad()
-            .size(w, h)
-            .color(bg)
-            .border_radius([7.0; 4])
-            .build(ui);
-        nuon::quad()
-            .size(w, 7.0)
-            .y(h - 7.0)
-            .color(accent)
-            .border_radius([0.0, 0.0, 7.0, 7.0])
-            .build(ui);
+        let bg = nuon::Color::new_u8(17, 17, 17, 0.6).mix(nuon::Color::new_u8(9, 9, 9, 0.6), t);
+        let accent = nuon::Color::new_u8(160, 81, 255, 1.0)
+            .mix(nuon::Color::new_u8(56, 145, 255, 1.0), t);
+
+        // O botão cresce ligeiramente e a barra de acento sobe
+        let grow = 4.0 * t;
+        nuon::translate().x(-grow).y(-grow / 2.0).build(ui, |ui| {
+            let w = w + grow * 2.0;
+            let h = h + grow;
+            let bar = 7.0 + 5.0 * t;
+
+            nuon::quad()
+                .size(w, h)
+                .color(bg)
+                .border_radius([7.0; 4])
+                .build(ui);
+            nuon::quad()
+                .size(w, bar)
+                .y(h - bar)
+                .color(accent)
+                .border_radius([0.0, 0.0, 7.0, 7.0])
+                .build(ui);
+        });
 
         let label = nuon::label()
             .size(self.size.width, self.size.height)

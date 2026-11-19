@@ -28,6 +28,11 @@ use midi_file::midly::MidiMessage;
 
 use super::NuonRenderer;
 
+/// Ease-out cúbico; `t` é limitado a [0, 1]
+fn ease_out(t: f32) -> f32 {
+    1.0 - (1.0 - t.clamp(0.0, 1.0)).powi(3)
+}
+
 type MsgFn = Box<dyn FnOnce(&mut UiState, &mut Context)>;
 
 fn on_async<T, Fut, FN>(future: Fut, f: FN) -> BoxFuture<MsgFn>
@@ -78,6 +83,9 @@ pub struct MenuScene {
     nuon: nuon::Ui,
 
     midi_input_state: MidiInputState,
+
+    /// Segundos desde que o menu abriu (anima a entrada)
+    age: f32,
 }
 
 impl MenuScene {
@@ -110,6 +118,7 @@ impl MenuScene {
             quad_pipeline,
             nuon: nuon::Ui::new(),
             midi_input_state: MidiInputState::default(),
+            age: 0.0,
         }
     }
 
@@ -202,45 +211,65 @@ impl MenuScene {
             .x(win_w / 2.0)
             .y(win_h / 5.0)
             .build(ui, |ui| {
+                // Logo: cai suavemente e depois "flutua"
+                let logo_p = ease_out(self.age / 0.6);
+                let float = (self.age * 1.4).sin() * 3.0 * logo_p;
                 nuon::image(self.logo)
                     .x(-logo_w / 2.0)
+                    .y(-(1.0 - logo_p) * 70.0 + float)
                     .size(logo_w, logo_h)
                     .build(ui);
+
+                let age = self.age;
+                // Botões entram em cascata, alternando esquerda/direita
+                let slide = move |i: usize| {
+                    let p = ease_out((age - 0.25 - i as f32 * 0.09) / 0.5);
+                    let dir = if i % 2 == 0 { -1.0 } else { 1.0 };
+                    dir * (1.0 - p) * 260.0
+                };
 
                 nuon::translate()
                     .x(-w / 2.0)
                     .y(logo_h + post_logo_gap)
                     .build(ui, |ui| {
-                        if neo_btn()
-                            .size(w, h)
-                            .label(locals::menu::select_file())
-                            .build(ui)
-                        {
-                            self.futures
-                                .push(open_midi_file_picker(&mut self.state, ctx));
-                        }
+                        nuon::translate().x(slide(0)).build(ui, |ui| {
+                            if neo_btn()
+                                .size(w, h)
+                                .label(locals::menu::select_file())
+                                .build(ui)
+                            {
+                                self.futures
+                                    .push(open_midi_file_picker(&mut self.state, ctx));
+                            }
+                        });
 
                         nuon::translate().y(h + gap).add_to_current(ui);
 
-                        if neo_btn().size(w, h).label("Biblioteca").build(ui) {
-                            self.state.go_to(Page::Library);
-                        }
+                        nuon::translate().x(slide(1)).build(ui, |ui| {
+                            if neo_btn().size(w, h).label("Biblioteca").build(ui) {
+                                self.state.go_to(Page::Library);
+                            }
+                        });
 
                         nuon::translate().y(h + gap).add_to_current(ui);
 
-                        if neo_btn()
-                            .size(w, h)
-                            .label(locals::menu::settings())
-                            .build(ui)
-                        {
-                            self.state.go_to(Page::Settings);
-                        }
+                        nuon::translate().x(slide(2)).build(ui, |ui| {
+                            if neo_btn()
+                                .size(w, h)
+                                .label(locals::menu::settings())
+                                .build(ui)
+                            {
+                                self.state.go_to(Page::Settings);
+                            }
+                        });
 
                         nuon::translate().y(h + gap).add_to_current(ui);
 
-                        if neo_btn().size(w, h).label(locals::menu::exit()).build(ui) {
-                            self.state.go_back();
-                        }
+                        nuon::translate().x(slide(3)).build(ui, |ui| {
+                            if neo_btn().size(w, h).label(locals::menu::exit()).build(ui) {
+                                self.state.go_back();
+                            }
+                        });
                     });
             });
 
@@ -310,6 +339,7 @@ impl Scene for MenuScene {
     fn update(&mut self, ctx: &mut Context, delta: Duration) {
         self.quad_pipeline.clear();
         self.bg_pipeline.update_time(delta);
+        self.age += delta.as_secs_f32();
         self.state.tick(ctx);
 
         self.futures
