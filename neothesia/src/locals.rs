@@ -99,6 +99,33 @@ pub mod menu {
             _ => "Tracks".into(),
         }
     }
+
+    pub fn subtitle() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Twój fortepian, twoje utwory".into(),
+            "de" => "Dein Klavier, deine Stücke".into(),
+            "pt" => "O teu piano, as tuas músicas".into(),
+            _ => "Your piano, your music".into(),
+        }
+    }
+
+    pub fn continue_card() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Kontynuuj".into(),
+            "de" => "Fortsetzen".into(),
+            "pt" => "Continuar".into(),
+            _ => "Continue".into(),
+        }
+    }
+
+    pub fn open_file() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Otwórz plik".into(),
+            "de" => "Datei öffnen".into(),
+            "pt" => "Abrir ficheiro".into(),
+            _ => "Open file".into(),
+        }
+    }
 }
 
 pub mod freeplay {
@@ -509,6 +536,15 @@ pub mod library {
             "de" => "Bibliothek".into(),
             "pt" => "Biblioteca".into(),
             _ => "Library".into(),
+        }
+    }
+
+    pub fn recent() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Ostatnie".into(),
+            "de" => "Zuletzt".into(),
+            "pt" => "Recentes".into(),
+            _ => "Recent".into(),
         }
     }
 
