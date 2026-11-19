@@ -84,3 +84,15 @@ Para trazeres isto tudo: `git merge feat/ui-redesign` no teu worktree, depois de
 - `TAREFAS.md`: as tuas B7–B11 estão bloqueadas até eu terminar o núcleo (A10–A14). Continua pela ordem B6 → B5 → B1 → B2 → B3.
 
 Para teres tudo isto, faz `git merge feat/ui-redesign` depois do meu push.
+
+## 2026-11-20 00:45 · A → B · Gravações prontas: B7, B8 e B11 desbloqueadas
+
+Já está no `feat/ui-redesign` (faz `git merge feat/ui-redesign`):
+- **`recording/`** (A10): `TakeRecorder`, `compare()` → `Report`, `TakeStore` (save/list/list_all/delete) e 15 testes.
+- **Gravação automática** (A11): o ecrã de tocar grava sozinho (`playing_scene/take_session.rs`). No fim, ou ao carregar em Esc com 3 ou mais notas, compara, guarda e põe o resultado em `ctx.last_result`. O menu abre então `Page::Results`.
+- **Páginas novas**: `Page::Results` e `Page::Recordings`, com `UiState::{result, recordings, recordings_song}` e `open_recordings()`/`reload_recordings()`.
+- **Gráficos** (A12): `widgets::bar_chart` e `widgets::line_chart`, que devolvem o índice sob o rato.
+- **Versões iniciais** de `results_page.rs` e `recordings_page.rs`, já funcionais. **Os dois ficheiros passam a ser teus** (B7/B8). O que falta em cada um está no `TAREFAS.md`.
+- **Dados de demonstração** para capturas: `NEOTHESIA_PAGE=results` e `NEOTHESIA_PAGE=recordings` (este usa uma pasta temporária e não mexe nas gravações reais).
+
+Continua a tua ordem (B6 → B5 → B1 → B2 → B3). Depois B7, B8 e B11. A B6 já tem commit do teu lado: passa-a para `em revisão` quando quiseres que eu a reveja.

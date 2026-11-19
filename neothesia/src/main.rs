@@ -3,6 +3,7 @@
 mod context;
 mod icons;
 mod library;
+mod recording;
 mod input_manager;
 mod locals;
 mod output_manager;

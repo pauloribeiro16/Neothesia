@@ -26,6 +26,13 @@ pub struct UiState {
     /// Linha selecionada pelo teclado na lista da biblioteca (índice na lista filtrada)
     pub lib_cursor: usize,
 
+    /// Resultado mostrado em `Page::Results` (vem de `ctx.last_result`)
+    pub result: Option<crate::recording::SessionResult>,
+    /// Música cujas gravações se mostram em `Page::Recordings`
+    pub recordings_song: Option<std::path::PathBuf>,
+    /// Gravações carregadas para `Page::Recordings` (mais recente primeiro)
+    pub recordings: Vec<crate::recording::Take>,
+
     pub range_detection: RangeDetection,
     pub keyboard_size: KeyboardSize,
 
@@ -46,10 +53,27 @@ impl UiState {
             song,
             search: String::new(),
             lib_cursor: 0,
+            result: None,
+            recordings_song: None,
+            recordings: Vec::new(),
 
             page_stack,
             range_detection: RangeDetection::default(),
             keyboard_size: KeyboardSize::from_range(ctx.config.piano_range()),
+        }
+    }
+
+    /// Abre a página de gravações de `song` (carrega a lista do disco).
+    pub fn open_recordings(&mut self, ctx: &Context, song: std::path::PathBuf) {
+        self.recordings = ctx.takes.list(&song);
+        self.recordings_song = Some(song);
+        self.go_to(Page::Recordings);
+    }
+
+    /// Volta a ler as gravações da música atual (depois de apagar, por exemplo).
+    pub fn reload_recordings(&mut self, ctx: &Context) {
+        if let Some(song) = &self.recordings_song {
+            self.recordings = ctx.takes.list(song);
         }
     }
 
@@ -125,6 +149,10 @@ pub enum Page {
     Library,
     Settings,
     TrackSelection,
+    /// Resultado da última sessão (precisão, erros por compasso)
+    Results,
+    /// Gravações de uma música (`UiState::recordings_song`)
+    Recordings,
 }
 
 pub fn connect_io(data: &UiState, ctx: &mut Context) {
