@@ -29,6 +29,7 @@ sys-locale.workspace = true
 anyhow.workspace = true
 
 bytes.workspace = true
+png.workspace = true
 lilt.workspace = true
 winit.workspace = true
 rfd.workspace = true

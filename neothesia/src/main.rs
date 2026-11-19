@@ -8,6 +8,7 @@ mod locals;
 mod output_manager;
 mod scene;
 mod song;
+mod theme;
 mod utils;
 
 use std::{sync::Arc, time::Duration};
@@ -51,6 +52,7 @@ struct Neothesia {
     // We are dropping surface last, because of some wgpu internal ref-counting errors that cause libwayland crasch
     surface: Surface,
     is_occluded: bool,
+    capture: Option<utils::capture::Capture>,
 }
 
 impl Neothesia {
@@ -66,6 +68,7 @@ impl Neothesia {
             surface,
             game_scene: Box::new(game_scene),
             is_occluded: false,
+            capture: utils::capture::Capture::from_env(),
         }
     }
 
@@ -242,7 +245,34 @@ impl Neothesia {
             self.game_scene.render(&mut rpass);
         }
 
+        let capture_buf = match self.capture.as_mut() {
+            Some(cap) => {
+                cap.frame += 1;
+                (cap.frame == cap.at_frame).then(|| {
+                    utils::capture::encode_copy(
+                        &self.context.gpu.device,
+                        &mut self.context.gpu.encoder,
+                        &frame.texture,
+                    )
+                })
+            }
+            None => None,
+        };
+
         self.context.gpu.submit();
+
+        if let (Some((buf, padded)), Some(cap)) = (capture_buf, self.capture.as_ref()) {
+            if let Err(e) = utils::capture::save(
+                &self.context.gpu.device,
+                &buf,
+                padded,
+                &frame.texture,
+                &cap.path,
+            ) {
+                log::error!("Capture failed: {e}");
+            }
+            std::process::exit(0);
+        }
 
         self.context.window.pre_present_notify();
         self.context.gpu.queue.present(frame);

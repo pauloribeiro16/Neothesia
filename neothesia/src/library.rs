@@ -196,6 +196,30 @@ impl Library {
         }
     }
 
+    /// Volta à música anterior da playlist (devolve o caminho).
+    pub fn previous(&mut self) -> Option<PathBuf> {
+        let prev = self.queue_pos?.checked_sub(1)?;
+        let path = self.queue.get(prev)?.clone();
+        self.queue_pos = Some(prev);
+        Some(path)
+    }
+
+    /// Há uma música seguinte na playlist?
+    pub fn has_next(&self) -> bool {
+        self.queue_pos.is_some_and(|p| p + 1 < self.queue.len())
+    }
+
+    /// Há uma música anterior na playlist?
+    pub fn has_previous(&self) -> bool {
+        self.queue_pos.is_some_and(|p| p > 0)
+    }
+
+    /// Texto "3 de 8" quando se está a tocar a playlist; `None` caso contrário.
+    pub fn position_label(&self) -> Option<String> {
+        self.queue_pos
+            .map(|p| format!("{} de {}", p + 1, self.queue.len()))
+    }
+
     pub fn stop_playlist(&mut self) {
         self.queue_pos = None;
     }

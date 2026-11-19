@@ -1665,6 +1665,7 @@ dependencies = [
  "nuon",
  "oxisynth",
  "piano-layout",
+ "png",
  "pollster",
  "profiling",
  "puffin",

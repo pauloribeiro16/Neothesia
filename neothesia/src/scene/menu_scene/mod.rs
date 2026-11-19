@@ -90,7 +90,13 @@ pub struct MenuScene {
 
 impl MenuScene {
     pub fn new(ctx: &mut Context, song: Option<Song>) -> Self {
-        let iced_state = UiState::new(ctx, song);
+        let mut iced_state = UiState::new(ctx, song);
+        match crate::utils::capture::env_page().as_deref() {
+            Some("library") => iced_state.go_to(Page::Library),
+            Some("settings") => iced_state.go_to(Page::Settings),
+            Some("tracks") => iced_state.go_to(Page::TrackSelection),
+            _ => {}
+        }
 
         let quad_pipeline = ctx.quad_renderer_factory.new_renderer();
         let text_renderer = ctx.text_renderer_factory.new_renderer();
@@ -116,7 +122,13 @@ impl MenuScene {
             futures: Vec::new(),
 
             quad_pipeline,
-            nuon: nuon::Ui::new(),
+            nuon: {
+                let mut ui = nuon::Ui::new();
+                if let Some((x, y)) = crate::utils::capture::env_mouse() {
+                    ui.mouse_move(x, y);
+                }
+                ui
+            },
             midi_input_state: MidiInputState::default(),
             age: 0.0,
         }

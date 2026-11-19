@@ -220,7 +220,8 @@ impl Surface {
         height: u32,
     ) -> Self {
         let surface_configuration = wgpu::SurfaceConfiguration {
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            // COPY_SRC permite o modo de captura (NEOTHESIA_CAPTURE)
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
             format: texture_format,
             view_formats: vec![texture_format],
             width,

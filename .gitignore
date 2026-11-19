@@ -7,3 +7,4 @@ node_modules
 
 # nix build output path
 /result
+/collab
