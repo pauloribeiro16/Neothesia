@@ -3,8 +3,10 @@ use std::{ops::RangeInclusive, path::PathBuf};
 use crate::{
     context::Context,
     locals,
-    scene::menu_scene::{MsgFn, icons, neo_btn_icon, on_async},
+    scene::menu_scene::{MsgFn, icons, on_async},
+    theme,
     utils::BoxFuture,
+    widgets,
 };
 use neothesia_core::config::NoteNaming;
 use nuon::TextAlign;
@@ -138,18 +140,30 @@ fn segmented_control(
     nuon::quad()
         .pos(x, y)
         .size(w, h)
-        .color([12, 12, 14])
-        .border_radius([8.0; 4])
+        .color(theme::surface_sunken())
+        .border_color(theme::border())
+        .border_width(1.0)
+        .border_radius([theme::RADIUS_M; 4])
         .build(ui);
 
     let mut clicked = None;
     let mut segment_x = x + padding;
 
     for (i, (layout, segment_w)) in layouts.into_iter().zip(widths).enumerate() {
-        let color = if i == selected {
-            [74, 68, 88, 255]
+        let (color, hover, preseed, font_color) = if i == selected {
+            (
+                theme::accent(),
+                theme::accent().mix(theme::accent_2(), 0.25),
+                theme::accent().mix(theme::accent_2(), 0.35),
+                theme::text(),
+            )
         } else {
-            [0; 4]
+            (
+                theme::accent().mix(theme::surface_sunken(), 1.0),
+                theme::surface_hover(),
+                theme::surface_hover(),
+                theme::text_muted(),
+            )
         };
 
         if nuon::button()
@@ -157,17 +171,10 @@ fn segmented_control(
             .pos(segment_x, y + padding)
             .size(segment_w, h - padding * 2.0)
             .color(color)
-            .hover_color(if i == selected {
-                color
-            } else {
-                [37, 35, 42, 255]
-            })
-            .preseed_color(if i == selected {
-                color
-            } else {
-                [47, 45, 54, 255]
-            })
-            .border_radius([6.0; 4])
+            .hover_color(hover)
+            .preseed_color(preseed)
+            .font_color(font_color)
+            .border_radius([theme::RADIUS_S; 4])
             .label_layout(layout)
             .build(ui)
         {
@@ -182,10 +189,11 @@ fn segmented_control(
 
 fn button() -> nuon::Button {
     nuon::button()
-        .color([74, 68, 88])
-        .preseed_color([74, 68, 88])
-        .hover_color([87, 81, 101])
-        .border_radius([5.0; 4])
+        .color(theme::surface_hover())
+        .preseed_color(theme::surface_hover())
+        .hover_color(theme::surface_hover().mix(theme::surface_active(), 0.5))
+        .font_color(theme::text())
+        .border_radius([theme::RADIUS_S; 4])
 }
 
 fn render_toggler<'a>() -> nuon::SettingsRowToggler<'a> {
@@ -211,7 +219,7 @@ fn note_naming_row(
 
     row.icon(icons::key_names_icon())
         .icon_font_family("Neothesia Icons")
-        .icon_color([255, 255, 255, 128])
+        .icon_color(theme::text_muted())
         .dropdown_width(280.0)
         .items(&labels)
         .selected(namings.iter().position(|n| *n == current).unwrap_or(0))
@@ -254,41 +262,74 @@ impl super::MenuScene {
         // Establish the selected output/input connection
         super::state::connect_io(&self.state, ctx);
 
+        // Paleta das secções de definições, a partir do tema partilhado
+        nuon::set_palette(
+            ui,
+            nuon::Palette {
+                surface: theme::surface(),
+                border: theme::border(),
+                border_width: 1.0,
+                radius: theme::RADIUS_L,
+                label: theme::text(),
+                row_text: theme::text(),
+                row_muted: theme::text_muted(),
+                icon_tile: theme::surface_sunken(),
+                accent: theme::accent(),
+                accent_hover: theme::accent().mix(theme::accent_2(), 0.25),
+                accent_pressed: theme::accent().mix(theme::accent_2(), 0.35),
+                control: theme::surface_hover(),
+                control_hover: theme::surface_hover().mix(theme::surface_active(), 0.5),
+                control_pressed: theme::surface_active(),
+                separator: theme::border(),
+            },
+        );
+
         let win_w = ctx.window_state.logical_size.width;
         let win_h = ctx.window_state.logical_size.height;
 
         let bottom_bar_h = 60.0;
+        let header_h = 56.0;
 
-        nuon::translate().x(0.0).y(win_h).build(ui, |ui| {
-            let padding = 10.0;
-            let w = 80.0;
-            let h = bottom_bar_h;
-
-            // Bottom Margin
-            nuon::translate().y(-padding).add_to_current(ui);
-            nuon::translate().y(-h).add_to_current(ui);
-
-            nuon::translate().x(0.0).build(ui, |ui| {
-                nuon::translate().x(padding).add_to_current(ui);
-
-                if neo_btn_icon(ui, w, h, icons::left_arrow_icon()) {
-                    self.state.go_back();
-                }
-
-                nuon::translate().x(-w - padding).add_to_current(ui);
-            });
+        // ← voltar (igual ao da biblioteca)
+        nuon::translate().y(win_h - bottom_bar_h).build(ui, |ui| {
+            let btn_h = 44.0;
+            nuon::translate()
+                .x(theme::SPACE_L)
+                .y(nuon::center_y(bottom_bar_h, btn_h))
+                .build(ui, |ui| {
+                    if widgets::button(("settings_back", 0), "")
+                        .icon(icons::left_arrow_icon())
+                        .size(btn_h, btn_h)
+                        .build(ui)
+                        .clicked
+                    {
+                        self.state.go_back();
+                    }
+                });
         });
 
-        let margin_top = 40.0;
+        // Cabeçalho
+        nuon::translate().x(theme::SPACE_XL).build(ui, |ui| {
+            nuon::label()
+                .y(theme::SPACE_S)
+                .size(win_w - theme::SPACE_XL * 2.0, 44.0)
+                .font_size(theme::FONT_XXL)
+                .color(theme::text())
+                .bold(true)
+                .text_justify(nuon::TextAlign::Start)
+                .text(locals::menu::settings())
+                .build(ui);
+        });
+
         let body_w = 650.0;
 
+        nuon::translate().y(header_h + theme::SPACE_S).build(ui, |ui| {
         nuon::scroll("settings_scroll")
-            .scissor_size(win_w, (win_h - bottom_bar_h).max(0.0))
+            .scissor_size(win_w, (win_h - header_h - bottom_bar_h - theme::SPACE_S).max(0.0))
             .build(ui, |ui| {
                 nuon::translate()
                     .x(nuon::center_x(win_w, body_w))
                     .add_to_current(ui);
-                nuon::translate().y(margin_top).add_to_current(ui);
 
                 nuon::settings_section(locals::settings::output())
                     .width(body_w)
@@ -430,6 +471,7 @@ impl super::MenuScene {
                 // last row's dropdown would be clipped with no way to scroll to it
                 nuon::translate().y(124.0).add_to_current(ui);
             });
+        });
     }
 }
 
@@ -651,8 +693,10 @@ impl super::MenuScene {
     ) {
         nuon::quad()
             .size(keyboard_w, keyboard_h)
-            .color([255; 3])
-            .border_radius([7.0; 4])
+            .color(theme::text())
+            .border_color(theme::border_strong())
+            .border_width(1.0)
+            .border_radius([theme::RADIUS_M; 4])
             .build(ui);
 
         let range = piano_layout::KeyboardRange::new(ctx.config.piano_range());
@@ -703,11 +747,11 @@ impl super::MenuScene {
                 .pos(x, y)
                 .size(width, height)
                 .color(if self.midi_input_state.is_pressed(note) {
-                    [122, 104, 168, 255]
+                    theme::accent()
                 } else if key.kind().is_sharp() {
-                    [0, 0, 0, 255]
+                    theme::surface_sunken()
                 } else {
-                    [0; 4]
+                    theme::accent().mix(theme::text(), 1.0)
                 })
                 .build(ui);
         };
@@ -735,7 +779,7 @@ impl super::MenuScene {
                     .x(key.x() + key.width())
                     .y(0.0)
                     .size(1.0, key.height())
-                    .color([150; 3])
+                    .color(theme::text_faint())
                     .build(ui);
             }
         }
