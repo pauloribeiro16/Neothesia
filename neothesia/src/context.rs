@@ -24,6 +24,10 @@ pub struct Context {
     pub input_manager: InputManager,
     pub config: Config,
     pub library: crate::library::Library,
+    /// Gravações guardadas (ver `recording::store`)
+    pub takes: crate::recording::TakeStore,
+    /// Resultado da última sessão no ecrã de tocar, consumido pela página de resultado
+    pub last_result: Option<crate::recording::SessionResult>,
 
     pub proxy: EventLoopProxy<NeothesiaEvent>,
 
@@ -71,6 +75,8 @@ impl Context {
             input_manager: InputManager::new(proxy.clone()),
             config,
             library: crate::library::Library::load(),
+            takes: crate::recording::TakeStore::new(),
+            last_result: None,
             proxy,
             frame_timestamp: std::time::Instant::now(),
 

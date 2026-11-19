@@ -102,3 +102,65 @@ Cada `Page` trata as suas teclas em `MenuScene::window_event`. Convenções: Esc
 - Captura do ecrã alterado para PNG (ver `utils/capture.rs`), com o caminho do PNG referido na mensagem de "feito".
 - A lógica sem UI (como a `Library`) leva testes unitários (`#[cfg(test)]`).
 - Commits pequenos e em português, terminando com a linha de co-autoria do agente.
+
+## 7. Gravações e comparação (Fase 7)
+
+### Módulos (núcleo do A, sem UI e com testes)
+
+```
+neothesia/src/recording/
+├── mod.rs        PlayedNote { note, start, end, velocity }  (tempo na linha do tempo da música)
+├── recorder.rs   TakeRecorder: note_on(note, vel, t) / note_off(note, t) / finish(t) -> Vec<PlayedNote>
+├── compare.rs    compare(expected, played, tolerância) -> Report
+└── store.rs      TakeStore: save / list / load / delete
+```
+
+**`Report`** (o que a UI mostra):
+```rust
+pub struct Report {
+    pub expected: usize,          // notas que era suposto tocar
+    pub hits: usize,              // tocadas com a nota certa dentro da tolerância
+    pub missed: usize,
+    pub extra: usize,             // tocadas sem correspondência
+    pub accuracy: f32,            // hits / expected, de 0 a 1
+    pub mean_offset_ms: f32,      // > 0 = atrasado, < 0 = adiantado
+    pub offset_spread_ms: f32,    // desvio-padrão (regularidade)
+    pub sections: Vec<SectionStats>, // por compasso: hits / missed / extra
+}
+```
+- Notas esperadas: as das faixas em modo **Humano**. Se não houver nenhuma, todas as faixas visíveis.
+- Emparelhamento: para cada nota esperada, a nota tocada da mesma altura mais próxima no tempo, dentro de ±150 ms. Cada nota tocada só conta uma vez.
+
+**Armazenamento:** `~/.config/neothesia/recordings/<hash da música>/`
+- `<unix_secs>.mid`: a gravação em MIDI normal, que abre como qualquer música
+- `<unix_secs>.txt`: linhas `chave<TAB>valor` (`song`, `accuracy`, `hits`, `missed`, `extra`, `offset_ms`, `duration_ms`)
+
+### Fluxo
+
+```
+PlayingScene ──(teclado MIDI)──► TakeRecorder
+     │ fim da música ou Esc, com ≥ 1 nota tocada
+     ▼
+compare(...) ─► Report ─► TakeStore::save ─► ctx.last_result = Some(SessionResult { take, report })
+     │
+     ▼ MainMenu ─► MenuScene abre Page::Results se ctx.last_result estiver preenchido
+```
+- `ctx.last_result` é o único canal entre o ecrã de tocar e o ecrã de resultado. A página de resultado consome-o com `take()`.
+- Páginas novas no menu: `Page::Results` (resultado da última sessão) e `Page::Recordings` (gravações da música em `UiState::recordings_song`).
+- Ver uma gravação é abri-la como uma `Song` normal (o `.mid` da gravação) e enviar `Play`, com todas as faixas em Auto.
+
+### Gráficos (`widgets.rs`)
+- `widgets::bar_chart(ui, id, w, h, &[f32], cor)`: erros por compasso.
+- `widgets::line_chart(ui, id, w, h, &[f32])`: evolução da precisão.
+
+## 8. Músicas MIDI (Fase 8)
+
+```
+neothesia/src/midi_tools/
+├── meta.rs   SongMeta { duration, notes, lowest, highest, notes_per_sec, difficulty } + cache
+└── edit.rs   EditOps { transpose, tempo_pct, trim_start, trim_end, remove_tracks, mute_tracks }
+              apply(src, &ops, dst) -> anyhow::Result<()>   (midly, trabalha em ticks)
+```
+- A edição **nunca** escreve por cima do original. O destino por omissão é `<nome> (editado).mid` na mesma pasta, e a biblioteca volta a ler a pasta depois de gravar.
+- A cache de metadados fica em `~/.config/neothesia/meta.txt` (linhas `caminho<TAB>mtime<TAB>…`) e é recalculada se o `mtime` mudar.
+- `Difficulty::{Facil, Medio, Dificil}` por notas por segundo (< 2,5 / < 5 / ≥ 5), para a etiqueta na biblioteca.

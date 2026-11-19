@@ -29,7 +29,10 @@ mod toast_manager;
 use toast_manager::ToastManager;
 
 mod animation;
+mod take_session;
 mod top_bar;
+
+use take_session::TakeSession;
 
 pub struct PlayingScene {
     keyboard: Keyboard,
@@ -56,6 +59,9 @@ pub struct PlayingScene {
 
     /// Evita processar o fim da música mais do que uma vez
     finish_handled: bool,
+
+    /// Gravação automática do que o utilizador toca
+    take: TakeSession,
 }
 
 impl PlayingScene {
@@ -117,6 +123,7 @@ impl PlayingScene {
 
         Self {
             finish_handled: false,
+            take: TakeSession::new(ctx),
             keyboard,
             guidelines,
             note_labels,
@@ -137,6 +144,11 @@ impl PlayingScene {
 
             top_bar: TopBar::new(),
         }
+    }
+
+    /// Tempo na linha do tempo da música (sem o lead-in)
+    fn song_time(&self) -> Duration {
+        self.player.time().saturating_sub(*self.player.leed_in())
     }
 
     fn update_glow(&mut self, delta: Duration) {
@@ -226,6 +238,7 @@ impl Scene for PlayingScene {
 
         let time = self.update_midi_player(ctx, delta);
         self.waterfall.update(time);
+        self.take.tick(self.song_time());
         self.guidelines.update(
             &mut self.quad_renderer_bg,
             ctx.config.animation_speed(),
@@ -283,6 +296,8 @@ impl Scene for PlayingScene {
 
         if self.player.is_finished() && !self.player.is_paused() && !self.finish_handled {
             self.finish_handled = true;
+            let t = self.song_time();
+            self.take.finish(ctx, self.player.song(), t);
 
             // Playlist: avança automaticamente para a próxima música
             let next = ctx.library.advance().and_then(|path| {
@@ -333,6 +348,8 @@ impl Scene for PlayingScene {
         }
 
         if event.back_mouse_pressed() || event.key_released(Key::Named(NamedKey::Escape)) {
+            let t = self.song_time();
+            self.take.finish(ctx, self.player.song(), t);
             ctx.library.stop_playlist();
             ctx.proxy
                 .send_event(NeothesiaEvent::MainMenu(Some(self.player.song().clone())))
@@ -360,6 +377,8 @@ impl Scene for PlayingScene {
     }
 
     fn midi_event(&mut self, _ctx: &mut Context, channel: u8, message: &MidiMessage) {
+        let t = self.song_time();
+        self.take.midi_event(message, t);
         self.player.user_midi_event(channel, message);
         self.keyboard.user_midi_event(message);
     }

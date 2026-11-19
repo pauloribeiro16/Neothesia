@@ -506,3 +506,151 @@ pub fn card(
     });
     r
 }
+
+// ── Gráficos ────────────────────────────────────────────────────────
+
+/// Gráfico de barras verticais (ex.: erros por compasso). Escala ao máximo
+/// de `values`. As barras crescem com animação ao aparecer. Devolve o índice
+/// da barra sob o rato, se houver (para tooltips ou clique).
+pub fn bar_chart(
+    ui: &mut nuon::Ui,
+    id: impl Hash,
+    w: f32,
+    h: f32,
+    values: &[f32],
+    color: Color,
+) -> Option<usize> {
+    let id = wid(id);
+    let grow = theme::ease_out(theme::anim(ui, ("bar_grow", id.as_raw()), 1.0, 0.06));
+
+    nuon::quad()
+        .size(w, h)
+        .color(theme::surface_sunken())
+        .border_radius([theme::RADIUS_M; 4])
+        .build(ui);
+
+    if values.is_empty() {
+        return None;
+    }
+
+    let pad = theme::SPACE_S;
+    let inner_w = w - pad * 2.0;
+    let inner_h = h - pad * 2.0;
+    let max = values.iter().cloned().fold(0.0_f32, f32::max).max(1.0);
+    let slot = inner_w / values.len() as f32;
+    let gap = (slot * 0.25).clamp(1.0, 4.0);
+    let bar_w = (slot - gap).max(1.0);
+
+    let mut hovered = None;
+    for (i, v) in values.iter().enumerate() {
+        let x = pad + i as f32 * slot;
+        let ev = nuon::click_area(wid((id.as_raw(), "bar", i)))
+            .pos(x, pad)
+            .size(slot, inner_h)
+            .build(ui);
+        let is_hover = ev.is_hovered();
+        if is_hover {
+            hovered = Some(i);
+        }
+
+        let bh = (v / max * inner_h * grow).max(if *v > 0.0 { 2.0 } else { 0.0 });
+        if bh <= 0.0 {
+            // linha de base fina para compassos sem valor
+            nuon::quad()
+                .pos(x, pad + inner_h - 1.0)
+                .size(bar_w, 1.0)
+                .color(theme::border_strong())
+                .build(ui);
+            continue;
+        }
+        nuon::quad()
+            .pos(x, pad + inner_h - bh)
+            .size(bar_w, bh)
+            .color(if is_hover { theme::accent_2() } else { color })
+            .border_radius([2.0, 2.0, 0.0, 0.0])
+            .build(ui);
+    }
+    hovered
+}
+
+/// Gráfico de linha com pontos (ex.: precisão ao longo das gravações).
+/// `values` em 0..1, desenhados da esquerda (mais antigo) para a direita.
+/// Devolve o índice do ponto sob o rato, se houver.
+pub fn line_chart(ui: &mut nuon::Ui, id: impl Hash, w: f32, h: f32, values: &[f32]) -> Option<usize> {
+    let id = wid(id);
+    let grow = theme::ease_out(theme::anim(ui, ("line_grow", id.as_raw()), 1.0, 0.06));
+
+    nuon::quad()
+        .size(w, h)
+        .color(theme::surface_sunken())
+        .border_radius([theme::RADIUS_M; 4])
+        .build(ui);
+
+    let pad = theme::SPACE_L;
+    let inner_w = w - pad * 2.0;
+    let inner_h = h - pad * 2.0;
+
+    // Linhas de referência a 50 % e 100 %
+    for frac in [0.5_f32, 1.0] {
+        nuon::quad()
+            .pos(pad, pad + inner_h * (1.0 - frac))
+            .size(inner_w, 1.0)
+            .color(theme::border())
+            .build(ui);
+    }
+
+    if values.is_empty() {
+        return None;
+    }
+
+    let point = |i: usize, v: f32| -> (f32, f32) {
+        let x = if values.len() == 1 {
+            pad + inner_w / 2.0
+        } else {
+            pad + inner_w * i as f32 / (values.len() - 1) as f32
+        };
+        let y = pad + inner_h * (1.0 - v.clamp(0.0, 1.0) * grow);
+        (x, y)
+    };
+
+    // Segmentos: aproximados por pequenos quadrados ao longo da linha
+    for i in 1..values.len() {
+        let (x0, y0) = point(i - 1, values[i - 1]);
+        let (x1, y1) = point(i, values[i]);
+        let len = ((x1 - x0).powi(2) + (y1 - y0).powi(2)).sqrt();
+        let steps = (len / 2.0).ceil().max(1.0) as usize;
+        for s in 0..=steps {
+            let t = s as f32 / steps as f32;
+            nuon::quad()
+                .pos(x0 + (x1 - x0) * t - 1.0, y0 + (y1 - y0) * t - 1.0)
+                .size(2.5, 2.5)
+                .color(theme::accent())
+                .border_radius([1.25; 4])
+                .build(ui);
+        }
+    }
+
+    let mut hovered = None;
+    for (i, v) in values.iter().enumerate() {
+        let (x, y) = point(i, *v);
+        let ev = nuon::click_area(wid((id.as_raw(), "pt", i)))
+            .pos(x - 10.0, y - 10.0)
+            .size(20.0, 20.0)
+            .build(ui);
+        let r = if ev.is_hovered() {
+            hovered = Some(i);
+            6.0
+        } else {
+            4.0
+        };
+        nuon::quad()
+            .pos(x - r, y - r)
+            .size(r * 2.0, r * 2.0)
+            .color(if ev.is_hovered() { theme::accent_2() } else { theme::text() })
+            .border_color(theme::accent())
+            .border_width(2.0)
+            .border_radius([r; 4])
+            .build(ui);
+    }
+    hovered
+}

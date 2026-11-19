@@ -11,6 +11,8 @@ use neo_btn::{neo_btn, neo_btn_icon};
 
 mod library_page;
 mod main_page;
+mod recordings_page;
+mod results_page;
 mod settings;
 mod tracks;
 
@@ -96,7 +98,20 @@ impl MenuScene {
             Some("library") => iced_state.go_to(Page::Library),
             Some("settings") => iced_state.go_to(Page::Settings),
             Some("tracks") => iced_state.go_to(Page::TrackSelection),
+            Some("results") => {
+                ctx.last_result = Some(crate::recording::demo::session_result());
+            }
+            Some("recordings") => {
+                crate::recording::demo::seed_takes(ctx);
+                iced_state.open_recordings(ctx, crate::recording::demo::song_path());
+            }
             _ => {}
+        }
+
+        // Acabou uma sessão no ecrã de tocar: mostrar o resultado
+        if let Some(result) = ctx.last_result.take() {
+            iced_state.result = Some(result);
+            iced_state.go_to(Page::Results);
         }
 
         let quad_pipeline = ctx.quad_renderer_factory.new_renderer();
@@ -157,6 +172,8 @@ impl MenuScene {
             Page::Library => self.library_page_ui(ctx, &mut nuon),
             Page::Settings => self.settings_page_ui(ctx, &mut nuon),
             Page::TrackSelection => self.tracks_page_ui(ctx, &mut nuon),
+            Page::Results => self.results_page_ui(ctx, &mut nuon),
+            Page::Recordings => self.recordings_page_ui(ctx, &mut nuon),
         }
 
         self.nuon = nuon;
@@ -326,6 +343,8 @@ impl Scene for MenuScene {
                 }
             }
             Page::Library => self.library_page_window_event(ctx, event),
+            Page::Results => self.results_page_window_event(ctx, event),
+            Page::Recordings => self.recordings_page_window_event(ctx, event),
             Page::Settings => {
                 if event.key_pressed(Key::Named(NamedKey::Escape)) {
                     self.state.go_back();

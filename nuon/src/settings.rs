@@ -2,6 +2,71 @@ use std::hash::Hash;
 
 use crate::{self as nuon, Color, Id, TextAlign, Ui};
 
+/// Paleta das secções de definições. A app pode semeá-la com `set_palette`
+/// (por omissão, as cores originais do Neothesia). Guardada no `Ui`.
+#[derive(Debug, Clone, Copy)]
+pub struct Palette {
+    /// Fundo do grupo de linhas
+    pub surface: Color,
+    /// Borda do grupo de linhas
+    pub border: Color,
+    pub border_width: f32,
+    pub radius: f32,
+    /// Título da secção
+    pub label: Color,
+    /// Texto principal da linha
+    pub row_text: Color,
+    /// Subtítulo da linha
+    pub row_muted: Color,
+    /// Fundo do quadrado do ícone
+    pub icon_tile: Color,
+    /// Cor ativa (toggler ligado, ícone ativo)
+    pub accent: Color,
+    pub accent_hover: Color,
+    pub accent_pressed: Color,
+    /// Controlos (botões +/−, toggler desligado)
+    pub control: Color,
+    pub control_hover: Color,
+    pub control_pressed: Color,
+    /// Linha separadora entre linhas
+    pub separator: Color,
+}
+
+impl Default for Palette {
+    fn default() -> Self {
+        Self {
+            surface: Color::new_u8(37, 35, 42, 1.0),
+            border: Color::new_u8(0, 0, 0, 0.0),
+            border_width: 0.0,
+            radius: 10.0,
+            label: Color::WHITE,
+            row_text: Color::WHITE,
+            row_muted: Color::new(1.0, 1.0, 1.0, 0.5),
+            icon_tile: Color::new_u8(12, 12, 14, 1.0),
+            accent: Color::new_u8(160, 81, 255, 1.0),
+            accent_hover: Color::new_u8(170, 91, 255, 1.0),
+            accent_pressed: Color::new_u8(140, 70, 240, 1.0),
+            control: Color::new_u8(74, 68, 88, 1.0),
+            control_hover: Color::new_u8(87, 81, 101, 1.0),
+            control_pressed: Color::new_u8(97, 91, 111, 1.0),
+            separator: Color::new_u8(0, 0, 0, 1.0),
+        }
+    }
+}
+
+fn palette_id() -> Id {
+    Id::hash("nuon_settings_palette")
+}
+
+/// Define a paleta usada pelas secções de definições deste `Ui`.
+pub fn set_palette(ui: &mut Ui, palette: Palette) {
+    *ui.data::<Palette>(palette_id()) = palette;
+}
+
+pub fn palette(ui: &mut Ui) -> Palette {
+    *ui.data::<Palette>(palette_id())
+}
+
 pub struct SettingsSection {
     label: String,
     width: f32,
@@ -26,12 +91,13 @@ impl SettingsSection {
         build: impl FnOnce(&mut Ui, &dyn Fn(&mut Ui, SettingsRow<'_>), &dyn Fn(&mut Ui)),
     ) {
         let spacer_label_h = 43.0;
+        let pal = palette(ui);
 
         let spacer = |ui: &mut Ui| {
             nuon::quad()
                 .width(self.width)
                 .height(1.0)
-                .color([0; 3])
+                .color(pal.separator)
                 .build(ui);
             nuon::translate().y(1.0).add_to_current(ui);
         };
@@ -40,13 +106,18 @@ impl SettingsSection {
             .text(self.label)
             .size(self.width, spacer_label_h)
             .font_size(14.6)
+            .color(pal.label)
             .text_justify(TextAlign::Start)
             .bold(true)
             .build(ui);
 
         nuon::translate().y(spacer_label_h).add_to_current(ui);
 
-        let pos = nuon::row_group().build(ui, |ui| {
+        let pos = nuon::row_group()
+            .color(pal.surface)
+            .border(pal.border, pal.border_width)
+            .radius(pal.radius)
+            .build(ui, |ui| {
             build(
                 ui,
                 &|ui, row| {
@@ -132,6 +203,7 @@ impl<'a> SettingsRow<'a> {
     }
 
     fn build_inner(self, ui: &mut Ui) {
+        let pal = palette(ui);
         let row_h = 54.0;
         let row_padding = 15.0;
         let row_inner_w = self.width - 2.0 * row_padding;
@@ -150,7 +222,7 @@ impl<'a> SettingsRow<'a> {
                 nuon::quad()
                     .y(tile_y)
                     .size(tile_size, tile_size)
-                    .color([12, 12, 14])
+                    .color(pal.icon_tile)
                     .border_radius([6.0; 4])
                     .build(ui);
 
@@ -170,6 +242,7 @@ impl<'a> SettingsRow<'a> {
                 nuon::label()
                     .x(text_x)
                     .text(self.title)
+                    .color(pal.row_text)
                     .text_justify(nuon::TextAlign::Start)
                     .font_size(title_h)
                     .size(row_inner_w - text_x, row_h)
@@ -183,6 +256,7 @@ impl<'a> SettingsRow<'a> {
                     .x(text_x)
                     .y(y)
                     .text(self.title)
+                    .color(pal.row_text)
                     .text_justify(nuon::TextAlign::Start)
                     .font_size(title_h)
                     .size(row_inner_w - text_x, title_h)
@@ -191,7 +265,7 @@ impl<'a> SettingsRow<'a> {
                     .x(text_x)
                     .y(y + gap + title_h)
                     .text(self.subtitle)
-                    .color([1.0, 1.0, 1.0, 0.5])
+                    .color(pal.row_muted)
                     .text_justify(nuon::TextAlign::Start)
                     .font_size(subtitle_h)
                     .size(row_inner_w - text_x, subtitle_h)
@@ -258,13 +332,14 @@ impl<'a> SettingsRowSpin<'a> {
         ui: &mut Ui,
         add: &dyn Fn(&mut Ui, SettingsRow<'_>),
     ) -> SettingsRowSpinResult {
-        fn button() -> nuon::Button {
+        let pal = palette(ui);
+        let button = move || -> nuon::Button {
             nuon::button()
-                .color([74, 68, 88])
-                .preseed_color([74, 68, 88])
-                .hover_color([87, 81, 101])
+                .color(pal.control)
+                .preseed_color(pal.control_pressed)
+                .hover_color(pal.control_hover)
                 .border_radius([16.0; 4])
-        }
+        };
 
         pub fn minus_icon() -> &'static str {
             "\u{F2EA}"
@@ -402,10 +477,11 @@ impl<'a> SettingsRowToggler<'a> {
             self.id
         };
 
+        let pal = palette(ui);
         let icon_color = if self.value {
-            Color::new_u8(160, 81, 255, 1.0)
+            pal.accent
         } else {
-            Color::new(1.0, 1.0, 1.0, 0.5)
+            pal.row_muted
         };
 
         self.row
@@ -415,20 +491,16 @@ impl<'a> SettingsRowToggler<'a> {
                 let h = 20.0;
                 if nuon::button()
                     .border_radius([10.0; 4])
-                    .color(if self.value {
-                        [160, 81, 255]
-                    } else {
-                        [74, 68, 88]
-                    })
+                    .color(if self.value { pal.accent } else { pal.control })
                     .hover_color(if self.value {
-                        [170, 91, 255]
+                        pal.accent_hover
                     } else {
-                        [87, 81, 101]
+                        pal.control_hover
                     })
                     .preseed_color(if self.value {
-                        [140, 70, 240]
+                        pal.accent_pressed
                     } else {
-                        [97, 91, 111]
+                        pal.control_pressed
                     })
                     .x(row_w - w)
                     .y(nuon::center_y(row_h, h))

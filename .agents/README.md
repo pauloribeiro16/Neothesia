@@ -4,8 +4,8 @@ Dois agentes trabalham neste repositório e comunicam **só por ficheiros nesta 
 
 | Agente | Papel | Ficheiros que pode editar |
 |---|---|---|
-| **A** (Claude Code) | **Arquiteto**: estrutura, componentes, tema, especificações, revisão, merge e instalação | `ARQUITETURA.md`, `PLANO.md`, `.agents/TAREFAS.md`, `neothesia/src/{main.rs,context.rs,library.rs,theme.rs,widgets.rs,utils/**}`, `neothesia/src/scene/menu_scene/{mod.rs,state.rs}`, `neothesia/src/scene/playing_scene/mod.rs`, crates de infraestrutura (`nuon/`, `neothesia-core/`, `wgpu-jumpstart/`, …) |
-| **B** (ZCode) | **Implementação** dos ecrãs, seguindo `ARQUITETURA.md` e as especificações em `TAREFAS.md` | `neothesia/src/scene/menu_scene/{main_page.rs,library_page.rs,settings.rs,tracks.rs,neo_btn.rs}`, `neothesia/src/scene/playing_scene/top_bar/**`, `neothesia/src/locals.rs` |
+| **A** (Claude Code) | **Arquiteto**: estrutura, componentes, tema, especificações, revisão, merge e instalação | `ARQUITETURA.md`, `PLANO.md`, `.agents/TAREFAS.md`, `neothesia/src/{main.rs,context.rs,library.rs,theme.rs,widgets.rs,recording/**,utils/**}`, `neothesia/src/scene/playing_scene/take_session.rs`, `neothesia/src/scene/menu_scene/{mod.rs,state.rs}`, `neothesia/src/scene/playing_scene/mod.rs`, crates de infraestrutura (`nuon/`, `neothesia-core/`, `wgpu-jumpstart/`, …) |
+| **B** (ZCode) | **Implementação** dos ecrãs, seguindo `ARQUITETURA.md` e as especificações em `TAREFAS.md` | `neothesia/src/scene/menu_scene/{main_page.rs,library_page.rs,results_page.rs,recordings_page.rs,stats_page.rs,settings.rs,tracks.rs,neo_btn.rs}`, `neothesia/src/scene/playing_scene/top_bar/**`, `neothesia/src/locals.rs` |
 
 Para editar ficheiros fora da tua lista, pede primeiro em `MENSAGENS.md` e espera resposta.
 
