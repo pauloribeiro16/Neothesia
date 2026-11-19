@@ -23,6 +23,7 @@ pub struct Context {
     pub output_manager: OutputManager,
     pub input_manager: InputManager,
     pub config: Config,
+    pub library: crate::library::Library,
 
     pub proxy: EventLoopProxy<NeothesiaEvent>,
 
@@ -69,6 +70,7 @@ impl Context {
             output_manager: Default::default(),
             input_manager: InputManager::new(proxy.clone()),
             config,
+            library: crate::library::Library::load(),
             proxy,
             frame_timestamp: std::time::Instant::now(),
 

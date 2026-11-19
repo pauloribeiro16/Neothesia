@@ -21,6 +21,9 @@ pub struct UiState {
 
     pub song: Option<Song>,
 
+    /// Texto de pesquisa da biblioteca
+    pub search: String,
+
     pub range_detection: RangeDetection,
     pub keyboard_size: KeyboardSize,
 
@@ -39,6 +42,7 @@ impl UiState {
             selected_input: None,
             is_loading: false,
             song,
+            search: String::new(),
 
             page_stack,
             range_detection: RangeDetection::default(),
@@ -115,6 +119,7 @@ impl UiState {
 pub enum Page {
     Exit,
     Main,
+    Library,
     Settings,
     TrackSelection,
 }

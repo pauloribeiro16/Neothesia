@@ -53,6 +53,9 @@ pub struct PlayingScene {
     deduced_chord_name: String,
 
     top_bar: TopBar,
+
+    /// Evita processar o fim da música mais do que uma vez
+    finish_handled: bool,
 }
 
 impl PlayingScene {
@@ -113,6 +116,7 @@ impl PlayingScene {
         ));
 
         Self {
+            finish_handled: false,
             keyboard,
             guidelines,
             note_labels,
@@ -277,10 +281,29 @@ impl Scene for PlayingScene {
             ctx.window_state.scale_factor as f32,
         );
 
-        if self.player.is_finished() && !self.player.is_paused() {
-            ctx.proxy
-                .send_event(NeothesiaEvent::MainMenu(Some(self.player.song().clone())))
-                .ok();
+        if self.player.is_finished() && !self.player.is_paused() && !self.finish_handled {
+            self.finish_handled = true;
+
+            // Playlist: avança automaticamente para a próxima música
+            let next = ctx.library.advance().and_then(|path| {
+                match midi_file::MidiFile::new(&path) {
+                    Ok(midi) => Some((path, crate::song::Song::new(midi))),
+                    Err(e) => {
+                        log::error!("Failed to open {path:?}: {e}");
+                        None
+                    }
+                }
+            });
+
+            if let Some((path, song)) = next {
+                ctx.config.set_last_opened_song(Some(path));
+                ctx.proxy.send_event(NeothesiaEvent::Play(song)).ok();
+            } else {
+                ctx.library.stop_playlist();
+                ctx.proxy
+                    .send_event(NeothesiaEvent::MainMenu(Some(self.player.song().clone())))
+                    .ok();
+            }
         }
     }
 
@@ -309,6 +332,7 @@ impl Scene for PlayingScene {
         }
 
         if event.back_mouse_pressed() || event.key_released(Key::Named(NamedKey::Escape)) {
+            ctx.library.stop_playlist();
             ctx.proxy
                 .send_event(NeothesiaEvent::MainMenu(Some(self.player.song().clone())))
                 .ok();

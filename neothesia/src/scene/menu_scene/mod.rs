@@ -3,11 +3,13 @@ use bytes::Bytes;
 use state::{Page, UiState};
 
 mod midi_picker;
-use midi_picker::{is_midi_file, open_midi_file, open_midi_file_picker};
+pub(crate) use midi_picker::is_midi_file;
+use midi_picker::{ open_midi_file, open_midi_file_picker};
 
 mod neo_btn;
 use neo_btn::{neo_btn, neo_btn_icon};
 
+mod library_page;
 mod settings;
 mod tracks;
 
@@ -130,6 +132,7 @@ impl MenuScene {
         match self.state.current() {
             Page::Exit => self.exit_page_ui(ctx, &mut nuon),
             Page::Main => self.main_page_ui(ctx, &mut nuon),
+            Page::Library => self.library_page_ui(ctx, &mut nuon),
             Page::Settings => self.settings_page_ui(ctx, &mut nuon),
             Page::TrackSelection => self.tracks_page_ui(ctx, &mut nuon),
         }
@@ -215,6 +218,12 @@ impl MenuScene {
                         {
                             self.futures
                                 .push(open_midi_file_picker(&mut self.state, ctx));
+                        }
+
+                        nuon::translate().y(h + gap).add_to_current(ui);
+
+                        if neo_btn().size(w, h).label("Biblioteca").build(ui) {
+                            self.state.go_to(Page::Library);
                         }
 
                         nuon::translate().y(h + gap).add_to_current(ui);
@@ -344,7 +353,13 @@ impl Scene for MenuScene {
         }
 
         if let WindowEvent::DroppedFile(path) = event {
-            if !matches!(self.state.current(), Page::Main) {
+            if matches!(self.state.current(), Page::Library) {
+                if path.is_dir() {
+                    ctx.library.add_folder(path.clone());
+                } else if is_midi_file(path) {
+                    ctx.library.enqueue(path.clone());
+                }
+            } else if !matches!(self.state.current(), Page::Main) {
                 log::warn!("Ignoring dropped file {path:?}, not on the main menu");
             } else if self.state.is_loading() {
                 log::warn!("Ignoring dropped file {path:?}, another file is still loading");
@@ -403,6 +418,25 @@ impl Scene for MenuScene {
 
                 if event.key_pressed(Key::Character("f")) {
                     state::freeplay(&self.state, ctx);
+                }
+            }
+            Page::Library => {
+                if let WindowEvent::KeyboardInput { event: key, .. } = event
+                    && key.state.is_pressed()
+                {
+                    if key.logical_key == Key::Named(NamedKey::Escape) {
+                        if self.state.search.is_empty() {
+                            self.state.go_back();
+                        } else {
+                            self.state.search.clear();
+                        }
+                    } else if key.logical_key == Key::Named(NamedKey::Backspace) {
+                        self.state.search.pop();
+                    } else if let Some(text) = &key.text {
+                        self.state
+                            .search
+                            .extend(text.chars().filter(|c| !c.is_control()));
+                    }
                 }
             }
             Page::Settings => {
