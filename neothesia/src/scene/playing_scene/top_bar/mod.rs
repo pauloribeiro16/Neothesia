@@ -1,6 +1,11 @@
 use std::time::{Duration, Instant};
 
-use crate::{NeothesiaEvent, context::Context, icons};
+use crate::{NeothesiaEvent, context::Context, icons, theme};
+
+/// Glifos bootstrap-icons "skip-backward-fill"/"skip-forward-fill"
+/// (a mover para `icons.rs`)
+const SKIP_BACKWARD_ICON: &str = "\u{F551}";
+const SKIP_FORWARD_ICON: &str = "\u{F55D}";
 
 use super::{
     PlayingScene,
@@ -136,7 +141,9 @@ impl TopBar {
 
         nuon::quad()
             .size(win_w, 30.0 + 45.0)
-            .color([37, 35, 42])
+            .color(theme::surface())
+            .border_color(theme::border())
+            .border_width(1.0)
             .build(ui);
 
         Self::panel_left(this, ctx, ui);
@@ -150,7 +157,30 @@ impl TopBar {
     }
 
     fn button() -> nuon::Button {
-        nuon::button().size(30.0, 30.0).border_radius([5.0; 4])
+        nuon::button()
+            .size(30.0, 30.0)
+            .border_radius([theme::RADIUS_S; 4])
+            .color(nuon::Color::new_u8(255, 255, 255, 0.0))
+            .hover_color(theme::surface_hover())
+            .preseed_color(theme::surface_hover())
+            .font_color(theme::text())
+    }
+
+    /// Carrega `path` e envia `Play` (padrão do avanço automático)
+    fn jump(this: &mut PlayingScene, ctx: &mut Context, path: std::path::PathBuf) {
+        let queue_pos = ctx.library.queue_pos;
+        match midi_file::MidiFile::new(&path) {
+            Ok(midi) => {
+                let song = crate::song::Song::new(midi);
+                ctx.config.set_last_opened_song(Some(path));
+                ctx.library.queue_pos = queue_pos;
+                ctx.proxy.send_event(NeothesiaEvent::Play(song)).ok();
+            }
+            Err(e) => {
+                log::error!("Failed to open {path:?}: {e}");
+                let _ = this;
+            }
+        }
     }
 
     fn panel_left(this: &mut PlayingScene, ctx: &mut Context, ui: &mut nuon::Ui) {
@@ -159,6 +189,32 @@ impl TopBar {
                 .send_event(NeothesiaEvent::MainMenu(Some(this.player.song().clone())))
                 .ok();
         }
+
+        // Título da música + posição na playlist ("3 de 8")
+        let win_w = ctx.window_state.logical_size.width;
+        let title_x = 30.0 + theme::SPACE_M;
+        let title_w = (win_w / 2.0 - 45.0 - title_x - theme::SPACE_M).max(80.0);
+
+        nuon::translate().x(title_x).build(ui, |ui| {
+            let name = this.player.song().file.name.clone();
+            nuon::label()
+                .size(title_w, 30.0)
+                .font_size(theme::FONT_S)
+                .color(theme::text())
+                .text_justify(nuon::TextAlign::Start)
+                .text(theme::fit_text(&name, title_w - 70.0, theme::FONT_S))
+                .build(ui);
+
+            if let Some(label) = ctx.library.position_label() {
+                nuon::label()
+                    .x(title_w - 60.0)
+                    .size(60.0, 30.0)
+                    .font_size(theme::FONT_S)
+                    .color(theme::text_muted())
+                    .text(label)
+                    .build(ui);
+            }
+        });
     }
 
     fn panel_center(_this: &mut PlayingScene, ctx: &mut Context, ui: &mut nuon::Ui) {
@@ -213,7 +269,45 @@ impl TopBar {
         nuon::translate()
             .x(ctx.window_state.logical_size.width)
             .build(ui, |ui| {
-                nuon::translate().x(-30.0).add_to_current(ui);
+                // ⏮ ⏭ só fazem sentido com uma playlist a tocar
+                if ctx.library.position_label().is_some() {
+                    let prev_ok = ctx.library.has_previous();
+                    let next_ok = ctx.library.has_next();
+
+                    if Self::button()
+                        .icon(SKIP_BACKWARD_ICON)
+                        .font_color(if prev_ok {
+                            theme::text()
+                        } else {
+                            theme::text_faint()
+                        })
+                        .build(ui)
+                        && prev_ok
+                    {
+                        if let Some(path) = ctx.library.previous() {
+                            Self::jump(this, ctx, path);
+                        }
+                    }
+
+                    nuon::translate().x(-30.0).add_to_current(ui);
+
+                    if Self::button()
+                        .icon(SKIP_FORWARD_ICON)
+                        .font_color(if next_ok {
+                            theme::text()
+                        } else {
+                            theme::text_faint()
+                        })
+                        .build(ui)
+                        && next_ok
+                    {
+                        if let Some(path) = ctx.library.advance() {
+                            Self::jump(this, ctx, path);
+                        }
+                    }
+
+                    nuon::translate().x(-30.0).add_to_current(ui);
+                }
 
                 if Self::button().icon(icons::repeat_icon()).build(ui) {
                     this.top_bar.looper_active = !this.top_bar.looper_active;
@@ -284,7 +378,7 @@ impl TopBar {
 
         nuon::quad()
             .size(progress_w, h)
-            .color([56, 145, 255])
+            .color(theme::accent_2())
             .build(ui);
 
         for m in this.player.song().file.measures.iter() {
@@ -294,8 +388,8 @@ impl TopBar {
 
             let x = (start + measure) * w;
 
-            let light_measure = nuon::Color::new(1.0, 1.0, 1.0, 0.5);
-            let dark_measure = nuon::Color::new(0.4, 0.4, 0.4, 1.0);
+            let light_measure = theme::text_muted();
+            let dark_measure = theme::text_faint();
 
             let color = if x < progress_w {
                 light_measure
