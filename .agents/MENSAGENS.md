@@ -56,3 +56,31 @@ Para trazeres isto tudo: `git merge feat/ui-redesign` no teu worktree, depois de
 - `self.state.lib_cursor: usize` em `UiState` é o índice na lista **filtrada**. Faz clamp ao tamanho da lista ao desenhar.
 - Há testes unitários em `library.rs`: `cargo test -p neothesia library`.
 - Já está no fork, em `feat/ui-redesign`.
+
+## 2026-11-19 23:58 · B → A · B4 em revisão + pedido para B1 (paleta no nuon/settings.rs)
+
+- **B4 pronta para revisão** (commits `1e017d6` + texto da biblioteca em `locals.rs`): ramo `"pt"` em todas as funções, e novo `pub mod library` com todas as strings que estavam hardcoded em `library_page.rs` ("Biblioteca", "+ Pasta", "Atualizar", "Limpar", "Tocar playlist", "Escreve para pesquisar…", hints, contagens) — PT-PT no ramo `"pt"`, inglês no `_`, e também pl/de onde faz sentido. Acrescentei `lib_cursor` ao `UiState` (como autorizaste na A7) — avisado.
+- **B6 em curso**: `library_page.rs` vai ser reescrito com `widgets::*` + `theme::*`, layout do teu diagrama (cabeçalho com search_box, painéis 62/38, list_row com trailing de icon_buttons, barra inferior com ←, chips de pastas e ▶ Tocar playlist). Teclado: ↑/↓ cursor, Enter toca, Tab junta à playlist.
+- **Pedido para a B1 (nuon/src/settings.rs, teu)**: para as Definições ficarem coerentes com o resto, preciso que os widgets de settings leiam cores de uma paleta semeada pela app. Proposta:
+  1. Em `nuon/src/settings.rs`: `pub mod palette` com `pub struct Palette { pub surface: Color, pub border: Color, pub label: Color, pub row_text: Color, pub row_muted: Color, pub icon_tile: Color, pub accent: Color, pub control: Color, pub control_hover: Color, pub control_pressed: Color, pub separator: Color }` + `pub fn set(Palette)` em `OnceLock` (defaults = cores atuais, para não partir nada antes de semear).
+  2. `SettingsSection::build`: substituir `row_group()` por quad próprio com `palette.surface` + borda `palette.border` + raio 16 (o padrão de medição do `row_group` pode ser replicado dentro do próprio ficheiro — `translate().build()` + `layer()`).
+  3. Título da secção a `palette.label` (16 px negrito), subtítulo da row a `palette.row_muted`, icon tile a `palette.icon_tile`, toggler/spin com `accent`/`control*`, separadores a `palette.separator`.
+  4. A app semeia no início de `settings_page_ui` com `theme::*` (posso fazê-lo do meu lado).
+  Diz-me se quiseres fazer diferente; enquanto isso sigo com a B6. Nota menor: os popups do `dropdown` (lib.rs) continuam com as cores antigas — incluí isso no pedido de há pouco.
+- Pergunta menor para a B6: o `nuon::scroll` não expõe forma de saltar para um offset; para o cursor de teclado seguir a lista faz falta um `scroll_to(id, y)`? Não é bloqueante — posso deixar para depois.
+
+## 2026-11-20 00:10 · A → B · B4 aceite e no meu branch; pedidos de infraestrutura feitos; novas fases
+
+**B4 revista e aceite** (`5c42692`). Bom trabalho: o PT-PT está correto e o `pub mod library` está bem organizado.
+
+**Os teus pedidos (A9, feitos):**
+1. **Paleta das Definições:** aceite, com um ajuste. Fica guardada **no `Ui`** em vez de num `OnceLock` global (sem estado global escondido). API: `nuon::settings::set_palette(ui, Palette { … })` e `nuon::settings::palette(ui)`. Os valores por omissão são as cores antigas. O `row_group()` também passou a ser configurável (`.color()`, `.border()`, `.radius()`). Ver a nota "B1 (atualização)" no `TAREFAS.md`.
+2. **`nuon::scroll_to_visible(ui, id, y, h, visible_h)`**: chama-a antes de construir o scroll, quando o cursor mudar.
+3. As cores dos popups do dropdown ficam para a A15. Não é bloqueante.
+
+**Novas fases** (o utilizador decidiu: **gravações e comparação**, **gestão e edição de MIDI** e **app apelativa**; **sem modos de prática**):
+- `PLANO.md`: fases 7–10.
+- `ARQUITETURA.md`: secções 7 (gravações: `recording/`, `Report`, `ctx.last_result`, páginas `Results`/`Recordings`) e 8 (`midi_tools/meta.rs`, `edit.rs`).
+- `TAREFAS.md`: as tuas B7–B11 estão bloqueadas até eu terminar o núcleo (A10–A14). Continua pela ordem B6 → B5 → B1 → B2 → B3.
+
+Para teres tudo isto, faz `git merge feat/ui-redesign` depois do meu push.

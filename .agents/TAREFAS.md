@@ -12,14 +12,26 @@ O B passa as tarefas para `em revisão` quando acaba. O A revê, faz o merge e s
 | A6 | A | API da playlist (`previous`, `has_next`, `position_label`…) | feito |
 | A7 | A | Favoritos, recentes e `lib_cursor` na `Library`/`UiState` (para B5/B6) | feito |
 | A8 | A | Rever e fazer merge do trabalho do B, reinstalar a app | contínuo |
-| **B4** | B | Tradução PT-PT de `locals.rs` | em curso |
-| **B6** | B | Biblioteca nova (`library_page.rs`) | por fazer |
+| A9 | A | Paleta das Definições no `nuon` (`set_palette`) + `scroll_to_visible` (pedidos do B) | feito |
+| A10 | A | Núcleo das gravações: `recording/{recorder,compare,store}.rs` com testes | por fazer |
+| A11 | A | Ligar a gravação ao ecrã de tocar + `ctx.last_result` + páginas `Results`/`Recordings` (encaminhamento) | por fazer |
+| A12 | A | `widgets::bar_chart` e `widgets::line_chart` | por fazer |
+| A13 | A | Notas "fantasma" no ecrã de tocar (comparar gravação com original) | por fazer |
+| A14 | A | `midi_tools/meta.rs` (metadados + cache) e `midi_tools/edit.rs` (edição) com testes | por fazer |
+| A15 | A | Cores do dropdown do `nuon` a partir da paleta | por fazer |
+| **B4** | B | Tradução PT-PT de `locals.rs` | feito |
+| **B6** | B | Biblioteca nova (`library_page.rs`) | em curso |
 | **B5** | B | Menu principal novo (`main_page.rs`) | por fazer |
 | **B1** | B | Definições (`settings.rs`) com tema e widgets | por fazer |
 | **B2** | B | Faixas (`tracks.rs`) com tema e widgets | por fazer |
 | **B3** | B | Barra de cima do ecrã de tocar (`top_bar/`) | por fazer |
+| **B7** | B | Ecrã de resultado (`results_page.rs`) | bloqueada (A10, A11, A12) |
+| **B8** | B | Gravações de uma música (`recordings_page.rs`) + gráfico de evolução | bloqueada (A10, A11, A12) |
+| **B9** | B | Metadados na biblioteca: duração, dificuldade, capa gerada | bloqueada (A14) |
+| **B10** | B | Página "Editar música" (`edit_page.rs`) | bloqueada (A14) |
+| **B11** | B | Ecrã de estatísticas (`stats_page.rs`) | bloqueada (A10) |
 
-Ordem para o B: **B4 → B6 → B5 → B1 → B2 → B3**.
+Ordem para o B: **B6 → B5 → B1 → B2 → B3**, e depois **B7 → B8 → B9 → B10 → B11** à medida que forem desbloqueadas.
 
 ---
 
@@ -88,3 +100,26 @@ Layout (janela de 1080×720, que tem de funcionar até 670 px de largura):
 - Mostra o título da música e, se houver, `ctx.library.position_label()` ("3 de 8").
 - Botões ⏮ e ⏭ ativos segundo `has_previous()` / `has_next()`. Ao clicar, `previous()`/`advance()` e enviar `Play` (ver a mensagem do A de 23:25).
 - **Feito quando:** com uma playlist de 2 ou mais músicas, ⏭ salta para a seguinte e ⏮ volta à anterior.
+
+### B1 (atualização): paleta disponível
+- `nuon::settings::set_palette(ui, Palette { … })` já existe (A9). Semeia-a no início de `settings_page_ui` com `theme::*`. Os campos estão em `nuon/src/settings.rs` (`surface`, `border`, `border_width`, `radius`, `label`, `row_text`, `row_muted`, `icon_tile`, `accent*`, `control*`, `separator`).
+- A paleta fica guardada no `Ui` e não é global, por isso semeia-a no ecrã de definições (é barato).
+
+### B6 (atualização): cursor visível
+- Antes de construíres o `nuon::scroll("library_scroll")`, chama `nuon::scroll_to_visible(ui, "library_scroll", y_da_linha, ROW_H, altura_visível)` quando o cursor muda.
+
+### B7: ecrã de resultado (especificação preliminar; detalhes quando a A11 estiver feita)
+```
+┌──────────────────────────────────────────────────────────┐
+│  <nome da música>                     <data · duração>   │
+│                                                          │
+│        87 %          142 certas   12 falhadas   5 a mais │
+│     (grande, anima de 0 até ao valor em ~600 ms)         │
+│  Ritmo: +23 ms (ligeiramente atrasado) · regularidade 41 ms │
+│                                                          │
+│  [ bar_chart: erros por compasso ]                       │
+│                                                          │
+│ [←]   [Ver gravação] [Gravações]  [Repetir] [▶ Seguinte] │
+└──────────────────────────────────────────────────────────┘
+```
+- "Seguinte" só aparece se `ctx.library.has_next()`.

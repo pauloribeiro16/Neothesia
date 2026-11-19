@@ -1,7 +1,9 @@
 # Neothasia: plano geral
 
 Fork do [Neothesia](https://github.com/PolyMeilex/Neothesia) em `github.com/pauloribeiro16/Neothesia`.
-**Objetivo:** manter as animações de notas a cair, mas tornar a app bonita e fácil de usar no dia a dia: pôr músicas, organizá-las, escolhê-las e tocá-las seguidas.
+**Objetivo:** manter as animações de notas a cair, mas tornar a app bonita, apelativa e fácil de usar no dia a dia: gerir e editar músicas MIDI, tocá-las em playlist, **gravar o que tocas e comparar** com o original e com gravações anteriores.
+
+**Fora de âmbito** (decisão do utilizador): modos de prática (loop A–B, velocidade progressiva, mãos separadas).
 
 ## Princípios de UI
 
@@ -22,11 +24,11 @@ Fork do [Neothesia](https://github.com/PolyMeilex/Neothesia) em `github.com/paul
 
 ## Fases
 
-### Fase 0: base (A) ✅ em curso
+### Fase 0: base (A) ✅
 - [x] Biblioteca + playlist com avanço automático (`library.rs`, `library_page.rs`)
 - [x] Hover animado nos botões e entrada do menu em cascata
 - [x] `theme.rs` com cores, medidas, `anim()` e `panel()`
-- [ ] Modo de captura PNG (`utils/capture.rs`) para validar a UI sem abrir a janela
+- [x] Modo de captura PNG (`utils/capture.rs`) para validar a UI sem abrir a janela
 - [x] Coordenação por ficheiros em `.agents/`
 
 ### Fase 1: menu principal (A)
@@ -63,6 +65,29 @@ Fork do [Neothesia](https://github.com/PolyMeilex/Neothesia) em `github.com/paul
 - Transições suaves entre páginas (deslizar).
 - Tradução PT de todos os textos (`locals.rs`).
 - Script `make install-app` que compila e instala `/Applications/Neothesia.app`.
+
+### Fase 7: gravações e comparação ⭐ prioridade a seguir à UI
+Cada vez que tocas uma música, a app grava automaticamente o que tocaste.
+- **Gravação automática** no ecrã de tocar: as notas que tocas no teclado MIDI ficam guardadas por música, com data.
+- **Ecrã de resultado** no fim da música: % de notas certas, notas falhadas e notas a mais, se tocaste adiantado ou atrasado (em ms) e um gráfico de erros ao longo da música.
+- **Gravações de cada música**: lista com data, duração e precisão. Dá para ouvir ou ver uma gravação (notas a cair) e apagá-la.
+- **Comparar**: a tua gravação contra o original, ou duas gravações tuas, com as notas sobrepostas em "fantasma".
+- **Evolução**: gráfico da precisão ao longo do tempo por música.
+- Exportar uma gravação como `.mid`.
+
+### Fase 8: músicas MIDI (gestão e edição)
+- **Metadados** de cada música, calculados e guardados em cache: duração, número de notas, extensão (nota mais grave e mais aguda) e dificuldade estimada (notas por segundo).
+- **Edição rápida** (página "Editar"): renomear, transpor (±12 meios-tons), mudar o tempo (50–200 %), cortar o início ou o fim, apagar ou silenciar faixas. Grava sempre um ficheiro **novo** ("Nome (editado).mid") e nunca altera o original.
+- Mais tarde, um **editor de notas (piano roll)**: mover, acrescentar e apagar notas, e quantizar.
+
+### Fase 9: app apelativa
+- **Capas geradas** por música (gradiente de cor derivado do nome) e **etiqueta de dificuldade** (Fácil / Médio / Difícil).
+- **Ecrã de estatísticas**: tempo tocado, número de gravações, melhor precisão por música e dias seguidos.
+- **Transições** suaves entre páginas e microanimações (cartões, contadores).
+- **Exportar vídeo** de uma gravação (o crate `ffmpeg-encoder` já existe) para partilhar.
+
+### Fase 10: importar áudio com IA
+- Importar MP3 ou WAV e transcrever para MIDI com o `neothesia-ai` (já no repositório). A música resultante entra na biblioteca.
 
 ## Divisão de trabalho
 

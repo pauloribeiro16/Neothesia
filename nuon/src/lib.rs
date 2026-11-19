@@ -729,6 +729,19 @@ pub fn scroll(id: impl Into<Id>) -> Scroll {
     Scroll::new(id)
 }
 
+/// Ajusta o scroll `id` para que a faixa `[y, y + h]` (coordenadas do conteúdo)
+/// fique visível numa área de altura `visible_h`. Útil para o cursor do teclado
+/// seguir a lista. Chamar antes de construir o `scroll` no mesmo frame.
+pub fn scroll_to_visible(ui: &mut Ui, id: impl Into<Id>, y: f32, h: f32, visible_h: f32) {
+    let state = ui.data::<ScrollState>(id.into());
+    let v = state.value();
+    if y < v {
+        state.set_value(y);
+    } else if y + h > v + visible_h {
+        state.set_value(y + h - visible_h);
+    }
+}
+
 pub struct Card {}
 
 impl Default for Card {
@@ -761,7 +774,12 @@ pub fn card() -> Card {
     Card::new()
 }
 
-pub struct RowGroup {}
+pub struct RowGroup {
+    color: Color,
+    border_color: Color,
+    border_width: f32,
+    radius: f32,
+}
 
 impl Default for RowGroup {
     fn default() -> Self {
@@ -771,7 +789,28 @@ impl Default for RowGroup {
 
 impl RowGroup {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            color: Color::new_u8(37, 35, 42, 1.0),
+            border_color: Color::new_u8(0, 0, 0, 0.0),
+            border_width: 0.0,
+            radius: 10.0,
+        }
+    }
+
+    pub fn color(mut self, color: impl Into<Color>) -> Self {
+        self.color = color.into();
+        self
+    }
+
+    pub fn border(mut self, color: impl Into<Color>, width: f32) -> Self {
+        self.border_color = color.into();
+        self.border_width = width;
+        self
+    }
+
+    pub fn radius(mut self, radius: f32) -> Self {
+        self.radius = radius;
+        self
     }
 
     pub fn build(&self, ui: &mut Ui, build: impl FnOnce(&mut Ui)) -> Point {
@@ -781,8 +820,10 @@ impl RowGroup {
 
         self::quad()
             .size(last.x, last.y)
-            .color([37, 35, 42])
-            .border_radius([10.0; 4])
+            .color(self.color)
+            .border_color(self.border_color)
+            .border_width(self.border_width)
+            .border_radius([self.radius; 4])
             .build(ui);
 
         last
