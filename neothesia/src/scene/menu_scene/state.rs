@@ -23,6 +23,8 @@ pub struct UiState {
 
     /// Texto de pesquisa da biblioteca
     pub search: String,
+    /// Linha selecionada pelo teclado na lista da biblioteca (índice na lista filtrada)
+    pub lib_cursor: usize,
 
     pub range_detection: RangeDetection,
     pub keyboard_size: KeyboardSize,
@@ -43,6 +45,7 @@ impl UiState {
             is_loading: false,
             song,
             search: String::new(),
+            lib_cursor: 0,
 
             page_stack,
             range_detection: RangeDetection::default(),
@@ -148,6 +151,10 @@ pub fn play(data: &UiState, ctx: &mut Context) {
     };
 
     connect_io(data, ctx);
+
+    if let Some(path) = ctx.config.last_opened_song().cloned() {
+        ctx.library.mark_played(&path);
+    }
 
     ctx.proxy
         .send_event(NeothesiaEvent::Play(song.clone()))

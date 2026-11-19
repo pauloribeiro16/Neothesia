@@ -118,6 +118,7 @@ pub fn play_path(
     };
     let song = Song::new(midi);
 
+    ctx.library.mark_played(&path);
     ctx.config.set_last_opened_song(Some(path));
     ctx.library.queue_pos = queue_pos;
 

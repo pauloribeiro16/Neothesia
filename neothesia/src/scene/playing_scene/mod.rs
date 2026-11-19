@@ -296,6 +296,7 @@ impl Scene for PlayingScene {
             });
 
             if let Some((path, song)) = next {
+                ctx.library.mark_played(&path);
                 ctx.config.set_last_opened_song(Some(path));
                 ctx.proxy.send_event(NeothesiaEvent::Play(song)).ok();
             } else {
