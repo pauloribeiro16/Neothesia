@@ -575,15 +575,6 @@ pub mod library {
         }
     }
 
-    pub fn add_visible() -> String {
-        match LOCAL.as_str() {
-            "pl" => "+ Widoczne".into(),
-            "de" => "+ Sichtbare".into(),
-            "pt" => "+ Visíveis".into(),
-            _ => "+ Visible".into(),
-        }
-    }
-
     pub fn search_placeholder() -> String {
         match LOCAL.as_str() {
             "pl" => "Pisz, aby wyszukiwać…".into(),
@@ -620,12 +611,21 @@ pub mod library {
         }
     }
 
-    pub fn stats(visible: usize, total: usize, folders: usize) -> String {
+    pub fn favorite_add() -> String {
         match LOCAL.as_str() {
-            "pl" => format!("Biblioteka · {visible} z {total} utworów · {folders} folder(-ów)"),
-            "de" => format!("Bibliothek · {visible} von {total} Stücken · {folders} Ordner"),
-            "pt" => format!("Biblioteca · {visible} de {total} músicas · {folders} pasta(s)"),
-            _ => format!("Library · {visible} of {total} songs · {folders} folder(s)"),
+            "pl" => "Dodaj do ulubionych".into(),
+            "de" => "Zu Favoriten hinzufügen".into(),
+            "pt" => "Adicionar aos favoritos".into(),
+            _ => "Add to favorites".into(),
+        }
+    }
+
+    pub fn favorite_remove() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Usuń z ulubionych".into(),
+            "de" => "Aus Favoriten entfernen".into(),
+            "pt" => "Remover dos favoritos".into(),
+            _ => "Remove from favorites".into(),
         }
     }
 
