@@ -244,6 +244,16 @@ impl super::MenuScene {
                         nuon::translate()
                             .y(28.0 + theme::SPACE_S)
                             .add_to_current(ui);
+
+                        // O cursor do teclado mantém-se visível na lista
+                        let cursor_y = cursor as f32 * (theme::ROW_H + theme::SPACE_XS);
+                        nuon::scroll_to_visible(
+                            ui,
+                            "library_scroll",
+                            cursor_y,
+                            theme::ROW_H,
+                            rows_h,
+                        );
                         nuon::scroll("library_scroll")
                             .scissor_size(inner_w, rows_h)
                             .build(ui, |ui| {
