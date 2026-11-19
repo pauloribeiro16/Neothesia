@@ -16,8 +16,10 @@ use crate::{
 };
 
 /// Glifos bootstrap-icons ainda não em `crate::icons` (a pedir ao A)
-const STAR_ICON: &str = "\u{F33A}";
-const STAR_FILL_ICON: &str = "\u{F33B}";
+const STAR_ICON: &str = "\u{F588}";
+const STAR_FILL_ICON: &str = "\u{F586}";
+const ARROW_UP_ICON: &str = "\u{F148}";
+const ARROW_DOWN_ICON: &str = "\u{F128}";
 
 const TRAILING_W: f32 = 36.0 * 3.0 + 8.0 * 2.0;
 const CHIP_H: f32 = 32.0;
@@ -281,7 +283,7 @@ impl super::MenuScene {
                                     return;
                                 }
 
-                                let row_w = inner_w;
+                                let row_w = inner_w - 14.0; // espaço para a scrollbar do scroll
                                 for (pos, song) in visible.iter().enumerate() {
                                     let sub = folder_name(&song.path);
                                     let is_playing = playing_path.as_ref() == Some(&song.path);
@@ -403,7 +405,7 @@ impl super::MenuScene {
                                     return;
                                 }
 
-                                let row_w = inner_w;
+                                let row_w = inner_w - 14.0; // espaço para a scrollbar do scroll
                                 for (i, path) in ctx.library.queue.iter().enumerate() {
                                     let title = Library::display_name(path);
                                     widgets::list_row(("q_row", i), row_w, &title)
@@ -417,7 +419,7 @@ impl super::MenuScene {
                                         if icon_btn(
                                             ui,
                                             ("q_up", i),
-                                            icons::cone_icon(),
+                                            ARROW_UP_ICON,
                                             36.0,
                                             locals::library::queue_up(),
                                         )
@@ -432,7 +434,7 @@ impl super::MenuScene {
                                         if icon_btn(
                                             ui,
                                             ("q_dn", i),
-                                            icons::repeat_icon(),
+                                            ARROW_DOWN_ICON,
                                             36.0,
                                             locals::library::queue_down(),
                                         )
