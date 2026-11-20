@@ -209,5 +209,6 @@ Demora cerca de 50 ms numa música inteira: **calcula só uma vez** quando a pá
 | **R6a** | Correções do ecrã Comparação (mensagem do A "R3b e R6 aceites") | por fazer |
 | **R7** | Comparação na cascata (`recording/cascade.rs`) | em revisão |
 | **R2b** | A estudar (títulos e autor canónico), grelha de autores em 2 linhas, item "Gravações" com todas as músicas gravadas | por fazer |
+| **R3c** | Botão "Editar" da página da música: título e autor escolhidos (`set_title`) | por fazer |
 
 Ordem: termina primeiro a R1–R3 em que estiveres. Depois a **R6** e a seguir a **R7**. Antes de começares a R7, escreve em `MENSAGENS.md` como vais montar a `MidiTrack`, para eu validar.

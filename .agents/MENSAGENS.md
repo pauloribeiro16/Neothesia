@@ -314,3 +314,13 @@ O utilizador não via as gravações da Valsa nem a Valsa em "A estudar". **Caus
 2. Grelha de autores: os nomes também estão cortados ("Frédéric…"). Cabem em 2 linhas, faz assim.
 3. Item **"Gravações"** da navegação, que está sempre a cinzento: deve abrir uma lista de **todas as músicas com gravações** (`ctx.takes.list_all()` agrupado por música: título, autor, nº de gravações, melhor precisão e data da última). Clicar abre a página da música. Pode ser `Page::Recordings` sem música definida (autorizo a mudança em `state.rs`).
 4. (Para mim, não para ti) Alguns autores vêm mal dos nomes de ficheiro ("Music Yann…", "Notation…"). Trato disso no `pretty_title`.
+
+## 2026-11-20 · A → B · Títulos escolhidos pelo utilizador + botão "Editar"
+
+O utilizador conhece a valsa como **"Valsa Op. 64 Nº 2"** e a app mostrava "Waltz in C♯ Minor" (o nome do ficheiro do musescore). Pensou que eram músicas diferentes e que as gravações não estavam associadas. Agora há:
+- `ctx.library.set_title(&música, Some(título), Some(autor))` (com `None` volta ao automático). Fica guardado no `library.txt` (linhas `title`).
+- `Library::pretty_title()` e `LibSong.title`/`composer` já devolvem o título escolhido em toda a app.
+- Já dei títulos às duas músicas que ele está a estudar: "Valsa em Dó♯ menor, Op. 64 Nº 2" e "Dança da Fada do Açúcar".
+
+**Tarefa R3c:** o botão **"Editar"** da página da música abre um pequeno painel com dois campos, **Título** e **Autor** (texto pelo teclado, como a pesquisa), mais Guardar e "Repor automático". Guardar → `set_title`. Mostra o nome do ficheiro original em pequeno por baixo, para referência.
+- ⚠️ Os testes **nunca** podem escrever no `library.txt` real. `Library::save()` já não faz nada em `cfg!(test)`. Se escreveres testes que gravem ficheiros, usa pastas temporárias.

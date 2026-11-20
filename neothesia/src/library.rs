@@ -49,6 +49,12 @@ impl LibSong {
                 [] => {}
             }
         }
+        if let Some((t, c)) = title_override(&path) {
+            title = t;
+            if c.is_some() {
+                composer = c;
+            }
+        }
         let composer_key = composer.as_deref().map(composer_key);
         let search_key = format!("{} {}", title, composer.as_deref().unwrap_or("")).to_lowercase();
         Self {
@@ -58,6 +64,11 @@ impl LibSong {
             composer_key,
             search_key,
         }
+    }
+
+    fn with_override(self) -> Self {
+        // with_root já aplica o título escolhido; mantido para clareza do chamador
+        self
     }
 
     pub fn matches(&self, query_lower: &str) -> bool {
@@ -82,11 +93,26 @@ pub struct Library {
     /// Os `.mid` dessas pastas são importados como gravações (ver
     /// `recording::import`) e não aparecem como músicas na biblioteca.
     pub links: Vec<(PathBuf, PathBuf)>,
+    /// Títulos/autores escolhidos pelo utilizador: (música, título, autor)
+    pub titles: Vec<(PathBuf, String, Option<String>)>,
     /// Leitura das pastas a decorrer em segundo plano (ver `rescan`/`poll_scan`)
     scan_rx: Option<std::sync::mpsc::Receiver<Vec<LibSong>>>,
 }
 
 pub const MAX_RECENT: usize = 20;
+
+/// Títulos e autores escolhidos pelo utilizador, por música (caminho na forma
+/// do disco). Têm prioridade sobre as pastas e o nome do ficheiro em TODA a app,
+/// incluindo `Library::pretty_title`. Persistidos em `library.txt` (linhas `title`).
+static TITLES: std::sync::RwLock<Vec<(PathBuf, String, Option<String>)>> =
+    std::sync::RwLock::new(Vec::new());
+
+fn title_override(path: &Path) -> Option<(String, Option<String>)> {
+    let t = TITLES.read().ok()?;
+    t.iter()
+        .find(|(p, _, _)| p == path)
+        .map(|(_, title, composer)| (title.clone(), composer.clone()))
+}
 
 /// Caminho na forma exata em que está no disco.
 ///
@@ -128,6 +154,14 @@ impl Library {
                     "queue" => lib.queue.push(c(path)),
                     "fav" => lib.favorites.push(c(path)),
                     "recent" => lib.recent.push(c(path)),
+                    "title" => {
+                        // title<TAB>caminho<TAB>título<TAB>autor (autor opcional)
+                        let mut it = path.split('\t');
+                        if let (Some(song), Some(title)) = (it.next(), it.next()) {
+                            let composer = it.next().filter(|c| !c.is_empty()).map(str::to_owned);
+                            lib.titles.push((c(song), title.to_owned(), composer));
+                        }
+                    }
                     "link" => {
                         if let Some((folder, song)) = path.split_once('\t') {
                             lib.links.push((c(folder), c(song)));
@@ -135,6 +169,9 @@ impl Library {
                     }
                     _ => {}
                 }
+            }
+            if let Ok(mut t) = TITLES.write() {
+                *t = lib.titles.clone();
             }
             // Regravar já na forma do disco (corrige ficheiros antigos)
             lib.favorites.dedup();
@@ -146,6 +183,10 @@ impl Library {
     }
 
     pub fn save(&self) {
+        // Os testes NUNCA escrevem a biblioteca real do utilizador
+        if cfg!(test) {
+            return;
+        }
         let mut out = String::new();
         for f in &self.folders {
             out.push_str(&format!("folder\t{}\n", f.display()));
@@ -161,6 +202,14 @@ impl Library {
         }
         for (folder, song) in &self.links {
             out.push_str(&format!("link\t{}\t{}\n", folder.display(), song.display()));
+        }
+        for (song, title, composer) in &self.titles {
+            out.push_str(&format!(
+                "title\t{}\t{}\t{}\n",
+                song.display(),
+                title,
+                composer.as_deref().unwrap_or("")
+            ));
         }
 
         let path = store_path();
@@ -415,8 +464,29 @@ impl Library {
     /// Título limpo e compositor a partir do nome do ficheiro, ex.:
     /// "Frédéric François Chopin_(1810 - 1849) - Waltz in C♯ Minor (1)"
     /// → ("Waltz in C♯ Minor", Some("Frédéric François Chopin")).
+    /// Título e autor a mostrar. Ordem: título escolhido pelo utilizador
+    /// (`set_title`) → nome do ficheiro. (As pastas `<Autor>/<Música>` entram via
+    /// `LibSong::with_root`.)
     pub fn pretty_title(path: &Path) -> (String, Option<String>) {
-        pretty_title_of(&Self::display_name(path))
+        title_override(path).unwrap_or_else(|| pretty_title_of(&Self::display_name(path)))
+    }
+
+    /// Dá a uma música um título (e autor) escolhidos pelo utilizador, ou repõe o
+    /// automático com `title = None`. Aplica-se já à lista de músicas.
+    pub fn set_title(&mut self, song: &Path, title: Option<String>, composer: Option<String>) {
+        let song = canonical(song);
+        self.titles.retain(|(p, _, _)| p != &song);
+        if let Some(t) = title.filter(|t| !t.trim().is_empty()) {
+            self.titles.push((song.clone(), t.trim().to_owned(), composer.filter(|c| !c.trim().is_empty())));
+        }
+        if let Ok(mut t) = TITLES.write() {
+            *t = self.titles.clone();
+        }
+        self.save();
+        // Atualizar a música na lista sem voltar a ler as pastas
+        if let Some(s) = self.songs.iter_mut().find(|s| s.path == song) {
+            *s = LibSong::with_root(song.clone(), None).with_override();
+        }
     }
 
     pub fn display_name(path: &Path) -> String {
@@ -617,6 +687,20 @@ mod tests {
         assert_eq!(g.last().unwrap().songs, vec![4]);
         // Pesquisa pelo autor
         assert!(lib.songs[3].matches("tchaikovsky") || lib.songs[3].matches("czajkowski"));
+    }
+
+    #[test]
+    fn user_titles_override_everywhere() {
+        let path = PathBuf::from("/nao/existe/Frederic Chopin - Waltz in C# Minor (teste).mid");
+        let mut lib = Library::default();
+        lib.songs = vec![LibSong::new(path.clone())];
+        lib.set_title(&path, Some("Valsa em Dó♯ menor, Op. 64 Nº 2".into()), Some("Frédéric Chopin".into()));
+        assert_eq!(Library::pretty_title(&path).0, "Valsa em Dó♯ menor, Op. 64 Nº 2");
+        assert_eq!(lib.songs[0].title, "Valsa em Dó♯ menor, Op. 64 Nº 2");
+        assert!(lib.songs[0].matches("op. 64"));
+        assert_eq!(lib.by_composer()[0].name, "Frédéric Chopin");
+        lib.set_title(&path, None, None);
+        assert_eq!(Library::pretty_title(&path).0, "Waltz in C# Minor (teste)");
     }
 
     #[test]
