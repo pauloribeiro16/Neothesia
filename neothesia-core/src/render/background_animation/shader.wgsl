@@ -23,82 +23,28 @@ fn vs_main(vertex: Vertex) -> VertexOutput {
 }
 
 
-fn rot_z(angle: f32) -> mat2x2<f32> {
-    let ca = cos(angle);
-    let sa = sin(angle);
-    return mat2x2<f32>(
-        vec2<f32>(ca, -sa),
-        vec2<f32>(sa, ca)
-    );
-}
-
-fn note_render(uv: vec2<f32>, pos: f32, color: vec3<f32>) -> vec3<f32> {
-    let mod_x: f32 = uv.x % (0.1 * 2.5 * 2.0);
-
-    var col: vec3<f32> = vec3<f32>(0.35, 0.08, 0.85);
-
-    if pos == 0.5 {
-        col = vec3<f32>(0.16, 0.02, 0.44);
-    }
-
-    if uv.y > 0.0 && uv.y < 0.5 {
-        return mix(color, col, vec3<f32>(smoothstep(-0.002, 0., 127. / 5800. - abs(mod_x - pos))));
-    } else {
-        return color;
-    }
-}
-
-const speed: f32 = -0.5;
-const live_time: f32 = 2.6;
+// Fundo dos menus — direção "sala de concerto": base escura (#0F0E13) com um
+// brilho violeta-quente muito suave no canto superior direito, que "respira"
+// devagar. Substitui as riscas diagonais. (Não é usado no ecrã de tocar.)
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    var uv: vec2<f32> = in.uv_position;
-    var color: vec3<f32> = vec3<f32>(0.01);
+    let uv = in.uv_position;
+    let base = vec3<f32>(0.0055, 0.0050, 0.0065); // ~#0F0E13 em linear
 
-    let d = 0.0;
+    // Brilho principal (canto superior direito)
+    let breathe = 0.85 + 0.15 * sin(time_uniform.time * 0.25);
+    let c1 = vec2<f32>(0.78, 1.08);
+    let d1 = distance(uv * vec2<f32>(1.6, 1.0), c1 * vec2<f32>(1.6, 1.0));
+    let glow1 = exp(-d1 * d1 * 2.2) * 0.030 * breathe;
+    let tint1 = vec3<f32>(0.55, 0.38, 0.85); // violeta
 
-    uv = uv * rot_z(0.7);
-    uv.x = uv.x + 1.0;
+    // Brilho secundário quente, em baixo à esquerda, ainda mais discreto
+    let c2 = vec2<f32>(0.08, -0.15);
+    let d2 = distance(uv * vec2<f32>(1.6, 1.0), c2 * vec2<f32>(1.6, 1.0));
+    let glow2 = exp(-d2 * d2 * 3.0) * 0.012 * (1.15 - breathe * 0.3);
+    let tint2 = vec3<f32>(0.95, 0.70, 0.35); // dourado
 
-    uv.x = uv.x * 1.5;
-    uv.x = uv.x % 0.5;
-
-        {
-        uv.y = uv.y - 1.5;
-
-        var off: f32 = 0.0;
-        var pos: vec2<f32> = uv;
-
-        pos.y = pos.y - (((time_uniform.time * speed + off) / 5.0) % 1.0) * live_time;
-        color = note_render(pos, 0.1, color);
-
-        off = 1.0;
-        pos = uv;
-        pos.y = pos.y - (((time_uniform.time * speed + off) / 5.0) % 1.0) * live_time;
-        color = note_render(pos, 0.1 * 2.0, color);
-
-        off = 3.0;
-        pos = uv;
-        pos.y = pos.y - (((time_uniform.time * speed + off) / 5.0) % 1.0) * live_time;
-        color = note_render(pos, 0.1 * 3.0, color);
-
-        off = 2.0;
-        pos = uv;
-        pos.y = pos.y - (((time_uniform.time * speed + off) / 5.0) % 1.0) * live_time;
-        color = note_render(pos, 0.1 * 4.0, color);
-
-        off = 0.0;
-        pos = uv;
-        pos.y = pos.y - (((time_uniform.time * speed + off) / 5.0) % 1.0) * live_time;
-        color = note_render(pos, 0.1 * 5.0, color);
-
-        off = 4.0;
-        pos = uv;
-        pos.y = pos.y - (((time_uniform.time * speed + off) / 5.0) % 1.0) * live_time;
-        color = note_render(pos, 0.1 * 5.0, color);
-    }
-
-
-    return vec4<f32>(color / 2.5, 0.5);
+    let color = base + tint1 * glow1 + tint2 * glow2;
+    return vec4<f32>(color, 1.0);
 }

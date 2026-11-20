@@ -25,7 +25,7 @@ impl TextLayout {
         Self {
             text: text.into(),
             size: 16.0,
-            font_family: Cow::Borrowed("Roboto"),
+            font_family: Cow::Borrowed(crate::font_system::DEFAULT_FAMILY),
             bold: false,
             bounds: Rect::zero(),
             text_justify: TextAlign::Start,

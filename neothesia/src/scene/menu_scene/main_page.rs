@@ -130,8 +130,10 @@ impl super::MenuScene {
                                 act = Some(Act::PlayLast);
                             }
                         });
-                        nuon::translate().y(64.0 + 20.0 + theme::SPACE_M).add_to_current(ui);
                     });
+                    // Avançar fora do bloco com âmbito: dentro dele o avanço perdia-se
+                    // e os cartões de ação ficavam por cima do "Continuar".
+                    nuon::translate().y(20.0 + theme::SPACE_XS + 64.0 + theme::SPACE_L).add_to_current(ui);
                 }
 
                 // ── Cartões de ação (4 em linha; 2×2 se largura < 900) ──

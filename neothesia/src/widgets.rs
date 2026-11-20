@@ -122,7 +122,7 @@ impl Button {
         let (bg, fg, border) = match self.kind {
             ButtonKind::Primary => (
                 theme::accent().mix(theme::accent_2(), t),
-                theme::text(),
+                theme::on_accent(),
                 Color::new_u8(255, 255, 255, 0.0),
             ),
             ButtonKind::Secondary => (
@@ -390,13 +390,24 @@ pub fn search_box(ui: &mut nuon::Ui, id: impl Hash, w: f32, text: &str, placehol
         .border_radius([theme::RADIUS_M; 4])
         .build(ui);
 
-    nuon::label()
-        .x(theme::SPACE_M)
-        .size(24.0, h)
-        .font_size(theme::FONT_M)
-        .color(theme::text_faint())
-        .text("⌕")
+    // Lupa desenhada (o glifo ⌕ não existe na fonte): anel + pega
+    let (cx, cy, r) = (theme::SPACE_M + 9.0, h / 2.0 - 2.0, 6.0);
+    nuon::quad()
+        .pos(cx - r, cy - r)
+        .size(r * 2.0, r * 2.0)
+        .border_color(theme::text_faint())
+        .border_width(1.8)
+        .border_radius([r; 4])
         .build(ui);
+    for k in 0..4 {
+        let d = r * 0.75 + k as f32 * 1.4;
+        nuon::quad()
+            .pos(cx + d - 1.2, cy + d - 1.2)
+            .size(2.6, 2.6)
+            .color(theme::text_faint())
+            .border_radius([1.3; 4])
+            .build(ui);
+    }
 
     let tx = theme::SPACE_M + 28.0;
     let tw = w - tx - h;
@@ -431,13 +442,36 @@ pub fn search_box(ui: &mut nuon::Ui, id: impl Hash, w: f32, text: &str, placehol
 
 // ── Texto ───────────────────────────────────────────────────────────
 
+/// Título de página (serifa, grande). Ex.: "Biblioteca".
+pub fn page_title(ui: &mut nuon::Ui, w: f32, text: &str) {
+    nuon::label()
+        .size(w, 52.0)
+        .font_size(theme::FONT_XXL)
+        .font_family(theme::FONT_DISPLAY)
+        .color(theme::text())
+        .text_justify(TextAlign::Start)
+        .text(text)
+        .build(ui);
+}
+
+/// Rótulo pequeno em maiúsculas (ex.: "A ESTUDAR", "AUTORES").
+pub fn eyebrow(ui: &mut nuon::Ui, w: f32, text: &str) {
+    nuon::label()
+        .size(w, 18.0)
+        .font_size(theme::FONT_S - 1.0)
+        .color(theme::text_muted())
+        .text_justify(TextAlign::Start)
+        .text(text.to_uppercase())
+        .build(ui);
+}
+
 /// Título de secção (ex.: "Playlist", "Recentes"), com `count` opcional.
 pub fn section_title(ui: &mut nuon::Ui, w: f32, text: &str, count: Option<usize>) {
     nuon::label()
         .size(w, 28.0)
         .font_size(theme::FONT_L)
+        .font_family(theme::FONT_DISPLAY)
         .color(theme::text())
-        .bold(true)
         .text_justify(TextAlign::Start)
         .text(text)
         .build(ui);

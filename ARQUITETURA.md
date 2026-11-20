@@ -176,3 +176,12 @@ Gravações feitas fora do ecrã de tocar (por exemplo no MusicaApp, guardadas n
 - As pastas ligadas são excluídas da lista de músicas da biblioteca.
 - **`Library::pretty_title(path)`** dá `(título, compositor)` limpos a partir do nome do ficheiro. Usa-o em toda a UI em vez de `display_name`.
 - `widgets::line_chart` ajusta a escala aos valores (`auto_range`). Para valores fixos em 0..1, usa `line_chart_scaled`.
+
+## 10. ⛔ Zona protegida: o ecrã de tocar
+
+Decisão do utilizador: **a cascata de notas, o teclado, o brilho, as etiquetas das notas e as animações do ecrã de tocar ficam exatamente como estão.** Gosta deles assim.
+
+- **Não se alteram** sem pedido explícito do utilizador: `neothesia-core/src/render/**` (waterfall, keyboard, glow, note labels, guidelines, shaders), `neothesia/src/scene/playing_scene/{keyboard.rs,animation.rs,midi_player.rs,rewind_controller.rs}`, nem a parte de render de `playing_scene/mod.rs`.
+- O redesign do ecrã de tocar limita-se à **barra de cima** (`top_bar/`), que aparece ao passar o rato no topo, e aos toasts.
+- Lógica nova no ecrã de tocar (por exemplo a gravação) entra em módulos à parte (como `take_session.rs`), sem mexer no desenho.
+- Antes de fazer merge de qualquer alteração, o A confirma com `git diff --stat` que nenhum destes ficheiros mudou.

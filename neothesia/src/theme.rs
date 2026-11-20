@@ -7,45 +7,75 @@ use std::hash::Hash;
 
 use nuon::Color;
 
-// ── Cores ───────────────────────────────────────────────────────────
+// ── Cores: direção "sala de concerto" (ver a maqueta aprovada) ─────────
+// Fundo escuro e calmo, texto marfim, UM acento dourado para a ação principal.
+// Nos dados: azul = certo / a tempo, laranja = a melhorar (distinguíveis por
+// daltónicos e em luminosidade).
+
+/// Fundo da app (#0F0E13)
+pub fn background() -> Color {
+    Color::new_u8(15, 14, 19, 1.0)
+}
+/// Painéis e cartões (#17161D translúcido)
 pub fn surface() -> Color {
-    Color::new_u8(22, 20, 32, 0.86)
+    Color::new_u8(23, 22, 29, 0.88)
 }
 pub fn surface_hover() -> Color {
-    Color::new_u8(34, 31, 50, 0.92)
+    Color::new_u8(33, 31, 41, 0.94)
 }
+/// Item escolhido / em destaque (tom quente)
 pub fn surface_active() -> Color {
-    Color::new_u8(50, 40, 86, 0.94)
+    Color::new_u8(52, 43, 30, 0.92)
 }
 pub fn surface_sunken() -> Color {
-    Color::new_u8(12, 11, 18, 0.7)
+    Color::new_u8(13, 12, 17, 0.75)
 }
 pub fn border() -> Color {
-    Color::new_u8(255, 255, 255, 0.08)
+    Color::new_u8(244, 239, 230, 0.08)
 }
 pub fn border_strong() -> Color {
-    Color::new_u8(255, 255, 255, 0.18)
+    Color::new_u8(244, 239, 230, 0.18)
 }
-/// Roxo principal
+/// Dourado — ação principal, seleção, a tua melhor marca (#E3B35C)
 pub fn accent() -> Color {
-    Color::new_u8(160, 81, 255, 1.0)
+    Color::new_u8(227, 179, 92, 1.0)
 }
-/// Azul secundário (hover / foco)
+/// Dourado claro — hover/foco do acento (#F0C979)
 pub fn accent_2() -> Color {
-    Color::new_u8(56, 145, 255, 1.0)
+    Color::new_u8(240, 201, 121, 1.0)
 }
+/// Texto sobre o dourado
+pub fn on_accent() -> Color {
+    Color::new_u8(15, 14, 19, 1.0)
+}
+/// Texto principal — marfim (#F4EFE6)
 pub fn text() -> Color {
-    Color::new_u8(242, 240, 248, 1.0)
+    Color::new_u8(244, 239, 230, 1.0)
 }
+/// Texto secundário (#A8A2B3)
 pub fn text_muted() -> Color {
-    Color::new_u8(150, 146, 168, 1.0)
+    Color::new_u8(168, 162, 179, 1.0)
 }
+/// Texto terciário / rótulos (#7D7889)
 pub fn text_faint() -> Color {
-    Color::new_u8(100, 96, 118, 1.0)
+    Color::new_u8(125, 120, 137, 1.0)
 }
+/// Dados: certo / a tempo (#6EA8FE)
+pub fn good() -> Color {
+    Color::new_u8(110, 168, 254, 1.0)
+}
+/// Dados: a melhorar (#F08A4B)
+pub fn warn() -> Color {
+    Color::new_u8(240, 138, 75, 1.0)
+}
+/// Ações destrutivas (apagar)
 pub fn danger() -> Color {
-    Color::new_u8(240, 82, 104, 1.0)
+    Color::new_u8(240, 98, 98, 1.0)
 }
+
+/// Família da serifa dos títulos (macOS: "New York"; noutros sistemas cai na
+/// família de texto). Usar em títulos de página e de cartões grandes.
+pub const FONT_DISPLAY: &str = ".New York";
 
 // ── Medidas ─────────────────────────────────────────────────────────
 pub const RADIUS_S: f32 = 6.0;

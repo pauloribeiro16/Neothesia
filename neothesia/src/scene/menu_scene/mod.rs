@@ -13,6 +13,7 @@ mod library_page;
 mod main_page;
 mod recordings_page;
 mod results_page;
+mod song_page;
 mod settings;
 mod tracks;
 
@@ -98,6 +99,13 @@ impl MenuScene {
             Some("library") => iced_state.go_to(Page::Library),
             Some("settings") => iced_state.go_to(Page::Settings),
             Some("tracks") => iced_state.go_to(Page::TrackSelection),
+            Some("song") => {
+                // NEOTHESIA_SONG=/caminho/musica.mid (por omissão, test.mid de demonstração)
+                let song = std::env::var_os("NEOTHESIA_SONG")
+                    .map(Into::into)
+                    .unwrap_or_else(crate::recording::demo::song_path);
+                iced_state.open_song(ctx, song);
+            }
             Some("results") => {
                 ctx.last_result = Some(crate::recording::demo::session_result());
             }
@@ -180,6 +188,7 @@ impl MenuScene {
             Page::TrackSelection => self.tracks_page_ui(ctx, &mut nuon),
             Page::Results => self.results_page_ui(ctx, &mut nuon),
             Page::Recordings => self.recordings_page_ui(ctx, &mut nuon),
+            Page::Song => self.song_page_ui(ctx, &mut nuon),
         }
 
         self.nuon = nuon;
@@ -358,6 +367,7 @@ impl Scene for MenuScene {
             Page::Library => self.library_page_window_event(ctx, event),
             Page::Results => self.results_page_window_event(ctx, event),
             Page::Recordings => self.recordings_page_window_event(ctx, event),
+            Page::Song => self.song_page_window_event(ctx, event),
             Page::Settings => {
                 if event.key_pressed(Key::Named(NamedKey::Escape)) {
                     self.state.go_back();
