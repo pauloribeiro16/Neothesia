@@ -77,9 +77,13 @@ fn civil_from_days(z: i64) -> (i64, u32, u32) {
     (y, m, d)
 }
 
+/// Guarda as gravações em disco, com uma **cache em memória** partilhada entre
+/// clones (a thread de importação usa um clone). A UI pode chamar `list`/`list_all`
+/// em cada frame: só se lê o disco quando a cache foi invalidada (save/import/delete).
 #[derive(Clone)]
 pub struct TakeStore {
     base: PathBuf,
+    cache: std::sync::Arc<std::sync::Mutex<Option<Vec<Take>>>>,
 }
 
 impl Default for TakeStore {
@@ -96,11 +100,20 @@ impl TakeStore {
             .map(|h| PathBuf::from(h).join(".config").join("neothesia"))
             .unwrap_or_else(|| PathBuf::from("."))
             .join("recordings");
-        Self { base }
+        Self::with_base(base)
     }
 
     pub fn with_base(base: PathBuf) -> Self {
-        Self { base }
+        Self {
+            base,
+            cache: Default::default(),
+        }
+    }
+
+    fn invalidate(&self) {
+        if let Ok(mut c) = self.cache.lock() {
+            *c = None;
+        }
     }
 
     /// O caminho é uma gravação (está dentro da pasta de gravações)?
@@ -152,6 +165,7 @@ impl TakeStore {
             },
         };
         std::fs::write(dir.join(format!("{recorded_at}.txt")), meta_to_text(&take))?;
+        self.invalidate();
         Ok(Some(take))
     }
 
@@ -196,32 +210,31 @@ impl TakeStore {
             },
         };
         std::fs::write(dir.join(format!("{recorded_at}.txt")), meta_to_text(&take))?;
+        self.invalidate();
         Ok(take)
     }
 
-    /// Gravações de uma música, da mais recente para a mais antiga.
+    /// Gravações de uma música, da mais recente para a mais antiga (da cache).
     pub fn list(&self, song: &Path) -> Vec<Take> {
-        let dir = self.song_dir(song);
-        let Ok(entries) = std::fs::read_dir(&dir) else {
-            return Vec::new();
-        };
-        let mut takes: Vec<Take> = entries
-            .flatten()
-            .filter(|e| e.path().extension().is_some_and(|x| x == "txt"))
-            .filter_map(|e| {
-                let text = std::fs::read_to_string(e.path()).ok()?;
-                let stem = e.path().file_stem()?.to_str()?.parse::<u64>().ok()?;
-                let midi_path = dir.join(format!("{stem}.mid"));
-                midi_path.exists().then(|| meta_from_text(&text, midi_path, stem))?
-            })
-            .filter(|t| t.song == song)
-            .collect();
-        takes.sort_by(|a, b| b.recorded_at.cmp(&a.recorded_at));
-        takes
+        self.list_all().into_iter().filter(|t| t.song == song).collect()
     }
 
-    /// Todas as gravações de todas as músicas (para estatísticas).
+    /// Todas as gravações de todas as músicas, da mais recente para a mais antiga.
+    /// Barato: devolve a cache; só lê o disco depois de uma invalidação.
     pub fn list_all(&self) -> Vec<Take> {
+        if let Ok(c) = self.cache.lock()
+            && let Some(v) = c.as_ref()
+        {
+            return v.clone();
+        }
+        let v = self.scan_all();
+        if let Ok(mut c) = self.cache.lock() {
+            *c = Some(v.clone());
+        }
+        v
+    }
+
+    fn scan_all(&self) -> Vec<Take> {
         let Ok(dirs) = std::fs::read_dir(&self.base) else {
             return Vec::new();
         };
@@ -254,6 +267,7 @@ impl TakeStore {
     pub fn delete(&self, take: &Take) -> std::io::Result<()> {
         std::fs::remove_file(&take.midi_path)?;
         let _ = std::fs::remove_file(take.midi_path.with_extension("txt"));
+        self.invalidate();
         Ok(())
     }
 }
@@ -411,6 +425,19 @@ mod tests {
         assert!((first.end.as_millis() as i64 - 400).abs() <= 2);
 
         store.delete(&take).unwrap();
+        assert!(store.list(&song).is_empty());
+    }
+
+    #[test]
+    fn cache_is_shared_and_invalidated_across_clones() {
+        let store = TakeStore::with_base(tmp_dir("cache"));
+        let song = PathBuf::from("/x/musica.mid");
+        assert!(store.list(&song).is_empty()); // enche a cache (vazia)
+        let worker = store.clone(); // como a thread de importação
+        worker.save(&song, &notes(), &Report::default()).unwrap();
+        assert_eq!(store.list(&song).len(), 1, "a UI vê a gravação nova");
+        let t = store.list(&song).pop().unwrap();
+        worker.delete(&t).unwrap();
         assert!(store.list(&song).is_empty());
     }
 

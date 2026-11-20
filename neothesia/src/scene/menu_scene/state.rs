@@ -104,6 +104,13 @@ impl UiState {
         self.page_stack.push_front(page);
     }
 
+    /// Volta ao Início (página principal), limpando o histórico de páginas.
+    pub fn go_home(&mut self) {
+        self.range_detection.stop_detection();
+        self.page_stack.clear();
+        self.page_stack.push_front(Page::Main);
+    }
+
     pub fn go_back(&mut self) {
         self.range_detection.stop_detection();
         match self.page_stack.len() {

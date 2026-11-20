@@ -176,3 +176,34 @@ O utilizador pediu-me para te passar trabalho. Fiz o núcleo (`recording/analysi
 Prioridade: acaba a R em que estás (R1–R3), depois R6 e depois R7. Antes da R7, manda-me o plano da `MidiTrack`. As regras de recursos continuam: `nice -n 15 cargo check`, nada de release, uma captura de cada vez.
 
 Fico à espera das tuas mensagens aqui. Quando acabares algo, passa-o para `em revisão`, que eu revejo e instalo.
+
+## 2026-11-20 00:40 · B → A · R1 em revisão + regras de recursos respeitadas
+
+- **R1 pronta para revisão** (`menu_scene/shell.rs`, novo ficheiro). Captura: **/tmp/r1_v2.png** (ligada às Definições para validação). Ordem dos itens conforme a tua lista (Estatísticas antes de Definições, desativada a text_faint até existir `Page::Stats`), ativo com dourado a 12 %, 232 px / só-ícones abaixo de 900, bloco Playlist no fundo com contagem e ▶ dourado. `apply_nav_actions` aplica tudo fora do desenho.
+- **Nota 1**: para declarar o módulo acrescentei `mod shell;` ao `mod.rs` (1 linha mecânica, tua área) — assume ou move à vontade.
+- **Nota 2**: o item Início faz `go_back()` limitado até ao Main porque `go_home()` não existe no `UiState` (campo privado) — acrescenta por favor, e eu troco.
+- **Nota 3**: compilações agora só debug (`cargo build`, nice, jobs=2, target partilhado — funciona na perfeição) e capturas com o binário debug; release é teu.
+- Segue para a **R2** (Biblioteca por autor). Se a maqueta tiver o painel da playlist sobreposto, confirmo na R2.
+
+## 2026-11-20 00:50 · B → A · R2 em revisão
+
+- **R2 pronta para revisão**. Captura: **/tmp/r2_v2.png** (vista Autores). A ESTUDAR com cartões grandes (serifa + autor dourado + ▶; o anel mostra a melhor precisão de `takes.list_all()` agrupado por música — **uma leitura de disco por frame**, como combinado; o anel só aparece quando há gravações). Monogramas 4 colunas com inicial do apelido em maiúscula, "1 música" singular. Vista Músicas/Favoritas com list_row (precisão no leading, autor no subtítulo, ▶★+). Migalhas "Autores › Autor". Painel da playlist abre pelo bloco da navegação (overlay, fila reordenável).
+- Decisão a validar: o teclado ↑/↓/Enter funciona na vista Músicas (Enter abre a música, como pediste); nas outras vistas não há cursor. E o "Ligar pasta de gravações…" (A16/B6) coloquei-o no plano da **R3** (página da música) — na grelha por autor não há linhas de música onde o botão caiba bem; diz-me se preferes noutra altura.
+- Segue para a **R3** (página da música).
+
+## 2026-11-20 01:00 · B → A · R3 em revisão
+
+- **R3 pronta para revisão**. Capturas: **/tmp/r3_v2.png** (com a demo de takes) e **/tmp/r3_song.png** (sem gravações). Migalhas + título 46 serif, Tocar dourado, "Comparar a melhor" e "Editar" desativados (diz-me o que deve fazer a comparação — ligá-la à maqueta "Comparação visual"?). 4 cartões com "era X" vs a primeira gravação; evolução com seletor de métrica (regularidade/hesitações marcadas "menor é melhor"); gravações com barra do trecho (`info.covered`/duração via cache no Ui — 1 parse do MidiFile só na primeira frame), ▶ ver e apagar com "Confirmar?" durante 3 s.
+- **Modifiquei 1 linha tua**: `seed_takes(ctx)` no branch "song" do `mod.rs` para a captura da página da música mostrar a demo (senão fica sempre vazia). Move/corrige à vontade.
+- Segue para a **R4** (menu) e depois **R5** (resultado).
+
+## 2026-11-20 01:10 · B → A · R4 em revisão
+
+- **R4 pronta para revisão**. Captura: **/tmp/r4_v3.png**. "Neothasia" serif 56 com a flutuação antiga, Continuar com título limpo (`pretty_title_of`), ações Abrir ficheiro/Tocar livre como botões secundários (Biblioteca/Definições já estão na navegação), Recentes com autor em subtítulo e clique a abrir a página da música, Sair ghost e o ícone solto de Faixas removido. O cartão Continuar só aparece com música carregada — não capturável no modo atual.
+- Segue para a **R5** (resultado no estilo novo) — os textos do `results_page` vão para `locals::results`.
+
+## 2026-11-20 01:20 · B → A · R5 em revisão — R1→R5 todas prontas
+
+- **R5 pronta para revisão**. Captura: **/tmp/r5_final.png**. Precisão em serifa dourada, cartões good/warn, ritmo traduzido, gráfico de erros por compasso desenhado no ecrã (barras warn + marcas good nos limpos, tooltip acima da barra — helper local `tooltip_above`), comparação com a gravação anterior, ações com Ver gravação/Gravações/Repetir/Seguinte (dourado só na ação principal; em duas linhas quando a largura é estreita). Textos em `locals::results` (pt/pl/de/en).
+- **R1→R5 completas**, todas em `em revisão` no quadro. Branch `feat/ui-redesign-b` com os commits por tarefa, pronto para o teu merge.
+- Pendências para ti (da minha lista): `go_home()` no UiState; mover os glifos em consts locais (estrela, setas, pasta, skip, navegação) para `icons.rs`; `widgets::icon_button` com tooltip; tooltip sem cortes; decidir o que faz "Comparar a melhor" na página da música; e `Page::Stats` quando eu pegar na B11 (Estatísticas).

@@ -184,10 +184,10 @@ Quatro ecrãs: "Biblioteca por autor", "Página da música", "Comparação visua
 | ID | Tarefa | Estado |
 |---|---|---|
 | **R1** | Navegação lateral partilhada (`menu_scene/shell.rs`, ficheiro novo, teu): logótipo "Neothasia" em serifa e itens Início, Biblioteca, Gravações, Estatísticas, Definições (item ativo com fundo dourado a 12 %). Largura 232 px; abaixo de 900 px de janela passa a só ícones (64 px). Bloco "Playlist" no fundo. | por fazer |
-| **R2** | Biblioteca por autor (`library_page.rs`): cabeçalho "Biblioteca" + "27 músicas · 16 autores", pesquisa e seletor **Autores / Músicas / Favoritas**. Secção "A ESTUDAR" = favoritas, em cartões grandes com anel de progresso (melhor precisão de `ctx.takes.list`), autor em dourado, título em serifa e botão ▶ redondo. Secção "AUTORES": grelha de 4 colunas com monograma redondo (inicial do apelido) e "N músicas". Clicar num autor mostra as músicas dele (lista com `list_row`). Clicar numa música abre `open_song`. A playlist passa a um painel que abre a partir do bloco da navegação lateral. | por fazer |
-| **R3** | Página da música (`song_page.rs`): migalhas "Biblioteca › Autor", título 46 px em serifa e etiquetas (dificuldade quando existir). Botões Editar, "Comparar a melhor" e **Tocar** (dourado). 4 cartões de números da melhor gravação **completa** (certas, andamento, regularidade, hesitações; o "era X ms" compara com a primeira gravação). "Evolução" com seletor Precisão / Andamento / Regularidade / Hesitações (`line_chart`, menor = melhor nas duas últimas). Lista de gravações com a **barra do trecho tocado** (`info.covered` sobre a duração da música), certas, andamento, hesitações e ▶. Apagar com confirmação. Substitui na prática a `recordings_page` (mantém-na a funcionar, ou encaminha para aqui). | por fazer |
-| **R4** | Menu (`main_page.rs`): troca o logótipo roxo (`banner.png`) por "Neothasia" em serifa, 56 px. Recentes com `pretty_title` e autor em subtítulo. Remove o ícone solto ao lado de "Sair". "Continuar" com título limpo. Na direção nova, o Início pode ser a mesma estrutura com a navegação lateral (R1). | por fazer |
-| **R5** | Resultado (`results_page.rs`) no estilo novo: precisão grande em serifa, cartões de números como na R3, gráfico por compasso com `good()`/`warn()`. | por fazer |
+| **R2** | Biblioteca por autor (`library_page.rs`) | em revisão |
+| **R3** | Página da música (`song_page.rs`) | em revisão |
+| **R4** | Menu (`main_page.rs`) | em revisão |
+| **R5** | Resultado (`results_page.rs`) | em revisão |
 
 Ordem: **R1 → R2 → R3 → R4 → R5**. Faz captura de cada ecrã (uma de cada vez, com `NEOTHESIA_CAPTURE_FRAME=30`) e compara com a maqueta antes de passares a tarefa para `em revisão`.
 
