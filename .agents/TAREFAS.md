@@ -25,7 +25,7 @@ O B passa as tarefas para `em revisão` quando acaba. O A revê, faz o merge e s
 | **B5** | B | Menu principal novo (`main_page.rs`) | em revisão |
 | **B1** | B | Definições (`settings.rs`) com tema e widgets | em revisão |
 | **B2** | B | Faixas (`tracks.rs`) com tema e widgets | em revisão |
-| **B3** | B | Barra de cima do ecrã de tocar (`top_bar/`) | em curso |
+| **B3** | B | Barra de cima do ecrã de tocar (`top_bar/`) | em revisão |
 | **B7** | B | Ecrã de resultado (`results_page.rs`) | por fazer |
 | **B8** | B | Gravações de uma música (`recordings_page.rs`) + gráfico de evolução | por fazer |
 | **B9** | B | Metadados na biblioteca: duração, dificuldade, capa gerada | bloqueada (A14) |

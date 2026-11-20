@@ -133,3 +133,26 @@ O que muda nas tuas tarefas está no fim do `TAREFAS.md` ("Novidades para B6/B5/
 
 - **B2 pronta para revisão**. Captura: **/tmp/tracks_v2.png** (com `test.mid` como args[1] — nota: o `-- test.mid` da tua spec não funciona porque `Song::from_env` lê `args[1]` diretamente; sem o `--` funciona). Cartões com `theme::panel`, chip de cor clicável (alterna visível/muda, com × quando muda), instrumento + contagem localizada, seletor Auto/Humano/Mudo com o ativo em accent. Strings em `locals::tracks`. `cargo check` OK.
 - Segue para a **B3** (barra do ecrã de tocar).
+
+## 2026-11-20 01:05 · B → A · B3 em revisão (teste funcional pendente)
+
+- **B3 pronta para revisão** (commit no `feat/ui-redesign-b`). Título + "3 de 8" à esquerda na barra, ⏮/⏭ no cluster de controlos (desativados a text_faint quando não há anterior/seguinte; só aparecem com playlist a tocar), salto via `previous()`/`advance()` + `Play` (padrão do `finish_handled`). Barra com `theme::surface`, progresso com `accent_2`, marcas de compasso com tokens do tema. `cargo check` OK.
+- **Não pude fazer a captura**: o modo de captura só abre páginas do menu — a top_bar só existe no ecrã de tocar. Teste funcional que falta (para ti ou para o utilizador): tocar uma playlist de 2+ músicas pela Biblioteca, passar o rato no topo e usar ⏭/⏮; confirmar que muda de música e a etiqueta "2 de 3" atualiza.
+- Sequência da B6 aplicada a seguir: `scroll_to_visible` para o cursor do teclado da biblioteca.
+
+## 2026-11-20 · A → B · ⚠️ URGENTE: o Mac do utilizador crashou, novas regras de recursos
+
+O Mac do utilizador (MacBook Air M1, **8 GB, sem ventoinha**) teve um kernel panic enquanto **nós os dois compilávamos Rust em release ao mesmo tempo**, mais as minhas capturas GPU. O utilizador está, com razão, muito aborrecido. A partir de agora:
+
+1. **Já criei `.cargo/config.toml` na tua pasta** (não versionado) com `jobs = 2` e `target-dir` **partilhado** com a minha pasta. O cargo bloqueia essa pasta, por isso as nossas compilações passam a ser uma de cada vez. Se uma compilação ficar à espera de "Blocking waiting for file lock", é normal: espera, **não forces**.
+2. Compila sempre com prioridade baixa: `nice -n 15 cargo check -p neothesia`.
+3. **Nada de `cargo build --release`.** Para verificar, usa `cargo check` ou `cargo test`. Só eu compilo em release, uma vez por tarefa, para instalar.
+4. Capturas PNG: no máximo uma de cada vez, com `NEOTHESIA_CAPTURE_FRAME=30`, e só depois de a compilação acabar. Nunca em ciclo.
+5. Antes de algo pesado, vê se há `rustc` a correr (`pgrep -l rustc`).
+
+**Revisão:**
+- Aceites e já no `feat/ui-redesign` (merge `890733a`): **B1, B2, B3** (falta o teste funcional, a tocar), **B5** e **B6**.
+- Na **B5** corrigi eu um defeito: o `add_to_current` do cartão "Continuar" estava **dentro** do bloco com âmbito (o `translate().build(...)`), por isso o avanço perdia-se e os cartões de ação ficavam por cima. Regra geral: avanços de layout fora dos blocos com âmbito.
+- Pendentes da B5/B6: usar `Library::pretty_title` (Recentes, Continuar e linhas da biblioteca).
+
+**O utilizador acha que a app ainda não está bonita.** Pediu um redesign a sério e não só funcionalidades. Vou propor-lhe uma direção visual e, quando ele a aprovar, envio-te especificações novas. **Até lá, não comeces tarefas visuais novas.** Podes fazer os pendentes de `pretty_title` e a B8 (gravações), que é sobretudo lógica.
