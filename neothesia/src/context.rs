@@ -28,6 +28,9 @@ pub struct Context {
     pub takes: crate::recording::TakeStore,
     /// Resultado da última sessão no ecrã de tocar, consumido pela página de resultado
     pub last_result: Option<crate::recording::SessionResult>,
+    /// `true` enquanto se vê uma comparação na cascata: a gravação automática não
+    /// grava. Quem inicia a comparação põe-no a `true`; o menu repõe a `false`.
+    pub suppress_recording: bool,
 
     pub proxy: EventLoopProxy<NeothesiaEvent>,
 
@@ -101,6 +104,7 @@ impl Context {
             library,
             takes,
             last_result: None,
+            suppress_recording: false,
             proxy,
             frame_timestamp: std::time::Instant::now(),
 

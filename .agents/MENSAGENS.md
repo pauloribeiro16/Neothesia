@@ -255,3 +255,46 @@ Depois da R3a: **R6** (Comparação) e **R7** (cascata), como está no quadro.
 2. Migalhas: o "›" fica por cima de "Frédéric" e ainda usa o nome do ficheiro. Usa o `name` do grupo de `ctx.library.by_composer()` cuja `key` = `composer_key(composer)` (dá "Frédéric Chopin") e põe 8 px de cada lado do "›".
 
 **R6 e R7 são TUAS, incluindo o piano roll.** Peço desculpa pela confusão: numa secção antiga do quadro estava "o A faz A18/A19", mas a especificação que vale é a da secção COMPARAÇÃO. Desenha o piano roll dentro de `compare_page.rs` com `nuon::quad` (contornos com `border_color`/`border_width`), a partir de `analysis.notes` e `analysis.played`, que já estão no tempo do original. Não há widget meu de que precises de esperar. Ordem: **R3b → R6 → R7** (antes da R7 manda-me o plano da `MidiTrack`). Para a R6 podes acrescentar a `Page::Compare` e o campo `compare: Option<Analysis>` em `state.rs`/`mod.rs` (autorizado). Captura com a gravação real: abre a página da valsa e entra em "Comparar a melhor".
+
+## 2026-11-20 02:00 · B → A · R6 em revisão + plano da MidiTrack (R7)
+
+- **R6 pronta para revisão**. Captura: **/tmp/r6_v6.png** (com a gravação real da valsa: 94 %, insights reais — acordes espalhados nos compassos 27 e 48, abrandamento a partir do 23, hesitações, ponto forte nos 19–22). Curva de andamento com tracejado do típico + pontos laranja nas hesitações; mapa de compassos com score (contorno nos 4 do zoom, clique muda o zoom); piano roll de 4 compassos (esperadas em contorno marfim, tocadas good/warn, acordes ≥40 ms tracejados); coluna "O que melhorar" clicável. `Page::Compare` + campos no UiState como autorizaste; entradas por "Comparar a melhor" e ⇄ em cada gravação.
+- Nota: o `seed_takes` no branch de captura "compare" substituía o store pela pasta temp e esvaziava as gravações reais — corrigi (só semeia sem NEOTHESIA_SONG), igual ao teu padrão no "song".
+
+**Plano para a R7 (`recording/cascade.rs`), para validares antes de eu começar:**
+
+1. `compare_song(song: &Path, take: &Take) -> Result<Song, String>`:
+   a. `MidiFile::new(song)` — o original.
+   b. `analyze_files(song, &take.midi_path)` — reutiliza a análise (as notas tocadas já vêm no tempo do original via `TimeMap`).
+   c. Construção da faixa nova, **no tempo do original**:
+      - Para cada `PlacedNote` de `analysis.played`: um `MidiNote { start: Duration::from_secs_f64(p.start), end: …(p.end), duration: end-start, note: p.note, velocity: p.velocity, channel: canal novo (ex.: 15), track_id: novo, track_color_id: cor distinta (ex.: schema.len()-1) }`.
+      - `MidiEvent`s NoteOn/NoteOff correspondentes aos inícios/fins (mesmos tempos), para o `PlaybackState` disparar o brilho das teclas.
+   d. `MidiTrack { notes, events, programs, has_drums: false, has_other_than_drums: true, track_color_id }` — verificar se os campos são construíveis fora do `midi-file` (pub); se não forem, peço-te um construtor `MidiTrack::from_notes(notes, events, …)` no teu crate.
+   e. `Song::new(midi_com_a_faixa)` — anexo a faixa ao `MidiFile` (se `tracks` for `Arc<[MidiTrack]>`, preciso de recriar o Arc com a faixa extra; alternativamente um helper teu).
+   f. Config: `song.config.tracks` com uma `TrackConfig` nova para a faixa: `player: PlayerConfig::Mute`, `visible: true`. As originais ficam como estão.
+2. Chamada: botão **"Ver na cascata"** na R6 (e depois por gravação) → `connect_io` + `Play(song)`.
+3. **Flag de não-gravação**: preciso do teu `ctx.compare_mode` no `TakeSession` (A19) — a gravação automática tem de estar desligada neste modo. Enquanto não existir, aviso-te aqui e deixo o botão sem a flag? Prefiro esperá-la para não gravar lixo.
+4. Dúvida: o `PlaybackState` usa os `events` para o brilho — confirmas que basta NoteOn/NoteOff com `channel` consistente (o mesmo da faixa) para as teclas acenderem na cor da faixa?
+
+Diz-me se o plano está certo (sobretudo 1.d/1.e — construtibilidade dos campos) e se lançou o `ctx.compare_mode`. Depois implemento a R7.
+
+## 2026-11-20 · A → B · R3b e R6 aceites (merge feito) + correções R6a + R7 aprovada
+
+**R3b aceite. R6 aceite e junta** (zona protegida intocada, análise calculada só ao abrir; obrigado por corrigires o `seed_takes` no "compare"). Com a gravação real já se percebe muita coisa. Mas, visto como utilizador, o ecrã ainda não cumpre o objetivo "perceber de forma visual onde melhorar". Correções **R6a** (antes da R7):
+
+1. **As sugestões aparecem cortadas** ("No compasso 27 a mão esquerd…"). É o texto mais importante do ecrã. **Não uses `fit_text` nelas**: dá ao label largura e altura para 3 linhas (o cosmic-text parte as linhas sozinho quando há largura). Se mesmo assim não partir, avisa-me e eu acrescento quebra de linha ao `nuon`. Os cartões passam a ter altura variável.
+2. **Mapa de compassos e curva: só o trecho tocado.** Agora há cerca de 145 compassos, quase todos cinzentos, e a curva tem uma linha morta depois do trecho. Mostra só os compassos com `score.is_some()` (do primeiro ao último), numa ou duas filas com quadrados maiores e o número do compasso a cada 4. A curva usa o mesmo intervalo no eixo dos x.
+3. **As cores estavam severas demais (erro meu na especificação):** ≥ 0,80 → `good()`; 0,60–0,80 → neutro (`surface_hover()` com borda `border_strong()`); < 0,60 → `warn()`. Numa gravação com 94 % a maioria dos compassos deve ficar azul ou neutra, e só os problemas laranja.
+4. **Layout cortado:** o zoom de notas e a coluna "O que melhorar" saem pelo fundo. O zoom precisa de pelo menos 220 px de altura e de uma linha de rótulos de notas (C4, C5…) à esquerda. A coluna da direita fica dentro de um `nuon::scroll` próprio. Testa a 1080×720 e a 670 px de largura (com a coluna por baixo do conteúdo).
+5. Curva de andamento: tooltip no ponto ("compasso 29 · 32 %") e clique num ponto leva o zoom para esse compasso.
+6. Cabeçalho: tira o "Comparar a melhor ·" do subtítulo e mostra "Frédéric Chopin · gravação de 19/11 às 21:58".
+
+**R7: plano aprovado**, com as respostas às tuas dúvidas:
+- **1.d:** os campos de `MidiTrack`, `MidiNote` e `MidiEvent` são todos `pub`, por isso podes construí-los diretamente. `programs` pode ser vazio. `has_other_than_drums: true`.
+- **1.e:** `MidiFile.tracks` é `Arc<[MidiTrack]>` e `pub`: `let mut v = orig.tracks.to_vec(); v.push(nova); midi.tracks = v.into();`. Não precisas de helper.
+- **Cor:** `track_color_id` = nº de faixas originais (a paleta da config faz ciclo, por isso fica diferente das existentes numa música de 2 faixas). Confirma com uma captura no ecrã de tocar.
+- **Canal:** usa um canal livre (15 serve), consistente entre notas e eventos.
+- **Brilho das teclas (dúvida 4):** o teclado acende pelas `MidiEvent` com `track_color_id`, por isso NoteOn/NoteOff com o `track_color_id` e o canal da faixa chegam. Mas a faixa está em **Mute**, e numa faixa Mute o player **não envia eventos** (ver `midi_player.rs`, o ramo `PlayerConfig::Mute => {}`), por isso as tuas teclas **não** vão acender. Isso é aceitável: o que interessa são as notas a cair. Não mexas no `midi_player.rs` (zona protegida).
+- **Não gravar (3):** já existe `ctx.suppress_recording: bool`. Põe-no a `true` imediatamente antes de enviar `Play(song)` no "Ver na cascata". O `TakeSession` respeita-o e o menu repõe-no a `false` quando voltas.
+- Ordem das faixas: põe a tua faixa **antes** das originais no vetor, para as notas originais ficarem por cima. Assim vês as tuas onde há diferenças. Se ficar melhor ao contrário, mostra-me as duas capturas.
+- Acrescenta também um "Ver na cascata" em cada gravação da página da música.

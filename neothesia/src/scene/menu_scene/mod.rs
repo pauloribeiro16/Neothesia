@@ -96,6 +96,8 @@ pub struct MenuScene {
 
 impl MenuScene {
     pub fn new(ctx: &mut Context, song: Option<Song>) -> Self {
+        // De volta ao menu: a gravação automática volta a estar ligada
+        ctx.suppress_recording = false;
         let mut iced_state = UiState::new(ctx, song);
         match crate::utils::capture::env_page().as_deref() {
             Some("library") => iced_state.go_to(Page::Library),

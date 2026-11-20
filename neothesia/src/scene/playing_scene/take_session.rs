@@ -34,7 +34,9 @@ impl TakeSession {
             .config
             .last_opened_song()
             .cloned()
-            .filter(|p| !ctx.takes.is_take_path(p));
+            .filter(|p| !ctx.takes.is_take_path(p))
+            // Ver uma comparação na cascata não cria gravações
+            .filter(|_| !ctx.suppress_recording);
         Self {
             recorder: TakeRecorder::new(),
             song_path,
