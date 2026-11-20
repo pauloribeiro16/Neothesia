@@ -10,7 +10,8 @@ use std::{hash::Hash, path::PathBuf};
 use midi_file::MidiFile;
 use nuon::TextAlign;
 
-use super::library_page::{is_partial, play_path, segmented_labels};
+use super::compare_page::COMPARE_ICON;
+use super::library_page::{play_path, segmented_labels};
 use crate::{context::Context, icons, library::Library, locals, recording::Take, theme, widgets};
 
 const TITLE_SIZE: f32 = 46.0;
@@ -19,6 +20,8 @@ enum Act {
     Play,
     OpenTake(usize),
     DeleteTake(usize),
+    CompareBest,
+    CompareTake(usize),
 }
 
 /// Estado local da página
@@ -34,8 +37,29 @@ fn page_state(ui: &mut nuon::Ui) -> &mut PageState {
     ui.data::<PageState>(widgets::wid(("song", "page_state")))
 }
 
+/// Uma gravação é "completa" se cobrir ≥ 90 % do **maior trecho já gravado
+/// desta música** (o utilizador costuma gravar só o início). Gravações sem
+/// `covered` (automáticas, a música inteira) são sempre completas.
+pub(super) fn is_complete(t: &Take, all: &[Take]) -> bool {
+    if t.info.covered.is_none() {
+        return true;
+    }
+    let len = |x: &Take| {
+        x.info
+            .covered
+            .map(|(a, b)| b.saturating_sub(a).as_secs_f32())
+            .unwrap_or(0.0)
+    };
+    let longest = all
+        .iter()
+        .filter(|x| x.info.covered.is_some())
+        .map(len)
+        .fold(0.0_f32, f32::max);
+    longest > 0.0 && len(t) >= longest * 0.9
+}
+
 /// Duração da música (max end das notas), calculada uma única vez por path
-pub(super) fn song_duration(ctx: &Context, ui: &mut nuon::Ui, path: &PathBuf) -> f32 {
+fn song_duration(ctx: &Context, ui: &mut nuon::Ui, path: &PathBuf) -> f32 {
     let cache: &mut Option<(PathBuf, f32)> = ui.data(widgets::wid(("song", "dur_cache")));
     if let Some((p, d)) = cache.as_ref()
         && p == path
@@ -57,20 +81,9 @@ pub(super) fn song_duration(ctx: &Context, ui: &mut nuon::Ui, path: &PathBuf) ->
     dur
 }
 
-/// Uma gravação é "completa" se cobrir ≥ 90 % da duração da música
-/// (gravações automáticas, sem `covered`, são sempre completas).
-pub(super) fn is_complete(t: &Take, song_dur: f32) -> bool {
-    match t.info.covered {
-        None => true,
-        Some((a, b)) => {
-            song_dur <= 0.0 || (b.saturating_sub(a)).as_secs_f32() / song_dur >= 0.9
-        }
-    }
-}
-
 /// Melhor gravação completa (ou, em falta, a melhor de todas)
-fn best_take(takes: &[Take], song_dur: f32) -> Option<&Take> {
-    let complete: Vec<&Take> = takes.iter().filter(|t| is_complete(t, song_dur)).collect();
+fn best_take(takes: &[Take]) -> Option<&Take> {
+    let complete: Vec<&Take> = takes.iter().filter(|t| is_complete(t, takes)).collect();
     complete
         .iter()
         .max_by(|a, b| a.accuracy.total_cmp(&b.accuracy))
@@ -103,7 +116,7 @@ impl super::MenuScene {
         };
         let takes = self.state.recordings.clone();
         let dur = song_duration(ctx, ui, &song);
-        let best = best_take(&takes, dur).cloned();
+        let best = best_take(&takes).cloned();
         let first = takes.last().cloned();
 
         let body_w = nav.content_w - theme::SPACE_XL * 2.0;
@@ -114,40 +127,37 @@ impl super::MenuScene {
             if widgets::button(("song_crumb", 0), locals::library::title())
                 .ghost()
                 .font_size(theme::FONT_S)
-                .size(120.0, 28.0)
+                .size(96.0, 28.0)
                 .build(ui)
                 .clicked
             {
                 self.state.go_back();
             }
+            // "›" com 8 px de cada lado (104..120)
             nuon::label()
-                .x(124.0)
-                .size(20.0, 28.0)
+                .x(104.0)
+                .size(16.0, 28.0)
                 .font_size(theme::FONT_S)
                 .color(theme::text_faint())
                 .text("›")
                 .build(ui);
-            // Nome canónico do autor (o mesmo que a Biblioteca mostra)
-            let composer = Library::pretty_title(&song)
-                .1
-                .and_then(|c| {
-                    ctx.library
-                        .by_composer()
-                        .into_iter()
-                        .find(|g| {
-                            g.name.to_lowercase().contains(&c.to_lowercase())
-                                || c.to_lowercase().contains(&g.name.to_lowercase())
-                        })
-                        .map(|g| g.name)
-                })
-                .unwrap_or_else(|| Library::pretty_title(&song).1.unwrap_or_default());
+            // Nome canónico do autor: o grupo com a mesma composer_key
+            let composer = Library::pretty_title(&song).1.unwrap_or_default();
+            let key = crate::library::composer_key(&composer);
+            let canonical = ctx
+                .library
+                .by_composer()
+                .into_iter()
+                .find(|g| g.key == key)
+                .map(|g| g.name)
+                .unwrap_or(composer);
             nuon::label()
-                .x(134.0)
-                .size(body_w - 134.0, 28.0)
+                .x(132.0)
+                .size(body_w - 132.0, 28.0)
                 .font_size(theme::FONT_S)
                 .color(theme::accent())
                 .text_justify(TextAlign::Start)
-                .text(composer)
+                .text(canonical)
                 .build(ui);
         });
 
@@ -469,7 +479,7 @@ impl super::MenuScene {
                                         "{:.0} % · {}{}",
                                         t.accuracy * 100.0,
                                         t.date_label(),
-                                        if is_complete(t, dur) {
+                                        if is_complete(t, &takes) {
                                             format!(" · {}", locals::song::complete())
                                         } else {
                                             String::new()
@@ -519,7 +529,8 @@ impl super::MenuScene {
                                     ))
                                     .build(ui);
 
-                                // Trailing: ▶ ver + × apagar
+                                // Trailing: ▶ ver + ⇄ comparar + × apagar
+                                let trailing = 36.0 * 3.0 + theme::SPACE_S * 2.0;
                                 nuon::translate().x(row_w - trailing).build(ui, |ui| {
                                     if widgets::button(("take_view", i), "")
                                         .icon(icons::play_icon())
@@ -530,6 +541,19 @@ impl super::MenuScene {
                                         .clicked
                                     {
                                         act = Some(Act::OpenTake(i));
+                                    }
+                                    nuon::translate()
+                                        .x(36.0 + theme::SPACE_S)
+                                        .add_to_current(ui);
+                                    if widgets::button(("take_cmp", i), "")
+                                        .icon(COMPARE_ICON)
+                                        .ghost()
+                                        .size(36.0, 36.0)
+                                        .tooltip(locals::song::compare_best())
+                                        .build(ui)
+                                        .clicked
+                                    {
+                                        act = Some(Act::CompareTake(i));
                                     }
                                     nuon::translate()
                                         .x(36.0 + theme::SPACE_S)
@@ -596,6 +620,21 @@ impl super::MenuScene {
                         log::error!("Falha ao apagar a gravação: {e}");
                     }
                     self.state.reload_recordings(ctx);
+                }
+            }
+            Act::CompareBest => {
+                if let Some(t) = self.state.recordings.iter().find(|t| Some(*t) == best.as_ref()) {
+                    let (song, t) = (song.clone(), t.clone());
+                    if let Err(e) = self.state.open_compare(song, t) {
+                        log::error!("Falha ao comparar: {e}");
+                    }
+                }
+            }
+            Act::CompareTake(i) => {
+                if let Some(t) = self.state.recordings.get(i).cloned() {
+                    if let Err(e) = self.state.open_compare(song.clone(), t) {
+                        log::error!("Falha ao comparar: {e}");
+                    }
                 }
             }
         }
