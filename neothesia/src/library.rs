@@ -15,21 +15,47 @@ const MAX_DEPTH: usize = 8;
 #[derive(Debug, Clone)]
 pub struct LibSong {
     pub path: PathBuf,
+    /// Título limpo (da pasta da música ou do nome do ficheiro)
     pub title: String,
-    /// Texto em minúsculas usado na pesquisa
+    /// Autor, se conhecido (da pasta do autor ou do nome do ficheiro)
+    pub composer: Option<String>,
+    /// Chave normalizada do autor (ex.: "chopin"), para agrupar
+    pub composer_key: Option<String>,
+    /// Texto em minúsculas usado na pesquisa (título + autor)
     search_key: String,
 }
 
 impl LibSong {
     pub fn new(path: PathBuf) -> Self {
-        let title = path
-            .file_stem()
-            .map(|s| s.to_string_lossy().into_owned())
-            .unwrap_or_else(|| path.to_string_lossy().into_owned());
-        let search_key = title.to_lowercase();
+        Self::with_root(path, None)
+    }
+
+    /// Lê título e autor. Convenção de pastas (tem prioridade sobre o nome do ficheiro):
+    /// - `<raiz>/<Autor>/<Música>/<ficheiro>.mid` → autor e título das pastas
+    /// - `<raiz>/<Autor>/<ficheiro>.mid` → autor da pasta, título do ficheiro
+    pub fn with_root(path: PathBuf, root: Option<&Path>) -> Self {
+        let (mut title, mut composer) = Library::pretty_title(&path);
+        if let Some(rel) = root.and_then(|r| path.strip_prefix(r).ok()) {
+            let dirs: Vec<String> = rel
+                .parent()
+                .map(|p| p.iter().map(|c| c.to_string_lossy().into_owned()).collect())
+                .unwrap_or_default();
+            match dirs.as_slice() {
+                [author, song, ..] => {
+                    composer = Some(author.clone());
+                    title = song.clone();
+                }
+                [author] => composer = Some(author.clone()),
+                [] => {}
+            }
+        }
+        let composer_key = composer.as_deref().map(composer_key);
+        let search_key = format!("{} {}", title, composer.as_deref().unwrap_or("")).to_lowercase();
         Self {
             path,
             title,
+            composer,
+            composer_key,
             search_key,
         }
     }
@@ -130,14 +156,65 @@ impl Library {
     }
 
     pub fn rescan(&mut self) {
-        let mut found = Vec::new();
+        let mut found: Vec<(PathBuf, PathBuf)> = Vec::new(); // (ficheiro, raiz)
         for folder in &self.folders {
-            scan_dir(folder, 0, &mut found);
+            let mut files = Vec::new();
+            scan_dir(folder, 0, &mut files);
+            found.extend(files.into_iter().map(|f| (f, folder.clone())));
         }
-        found.retain(|p| !self.links.iter().any(|(folder, _)| p.starts_with(folder)));
-        found.sort_by_key(|p| p.to_string_lossy().to_lowercase());
-        found.dedup();
-        self.songs = found.into_iter().map(LibSong::new).collect();
+        found.retain(|(p, _)| !self.links.iter().any(|(folder, _)| p.starts_with(folder)));
+        found.sort_by_key(|(p, _)| p.to_string_lossy().to_lowercase());
+        found.dedup_by(|a, b| a.0 == b.0);
+        self.songs = found
+            .into_iter()
+            .map(|(p, root)| LibSong::with_root(p, Some(&root)))
+            .collect();
+    }
+
+    /// Músicas agrupadas por autor: mais músicas primeiro, depois por nome;
+    /// as músicas sem autor ficam num grupo "Outros" no fim.
+    pub fn by_composer(&self) -> Vec<ComposerGroup> {
+        let mut groups: Vec<ComposerGroup> = Vec::new();
+        let mut others = ComposerGroup {
+            key: String::new(),
+            name: "Outros".into(),
+            songs: Vec::new(),
+        };
+        for (i, s) in self.songs.iter().enumerate() {
+            let (Some(key), Some(name)) = (&s.composer_key, &s.composer) else {
+                others.songs.push(i);
+                continue;
+            };
+            match groups.iter_mut().find(|g| &g.key == key) {
+                Some(g) => {
+                    g.songs.push(i);
+                    // Nome mais completo ganha ("Frédéric François Chopin" > "Chopin")
+                    if name.chars().count() > g.name.chars().count() {
+                        g.name = name.clone();
+                    }
+                }
+                None => groups.push(ComposerGroup {
+                    key: key.clone(),
+                    name: name.clone(),
+                    songs: vec![i],
+                }),
+            }
+        }
+        for g in &mut groups {
+            if let Some(canon) = canonical_name(&g.key) {
+                g.name = canon.into();
+            }
+        }
+        groups.sort_by(|a, b| {
+            b.songs
+                .len()
+                .cmp(&a.songs.len())
+                .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
+        });
+        if !others.songs.is_empty() {
+            groups.push(others);
+        }
+        groups
     }
 
     pub fn add_folder(&mut self, folder: PathBuf) {
@@ -306,6 +383,61 @@ impl Library {
     }
 }
 
+/// Um autor e as suas músicas (índices em `Library::songs`).
+#[derive(Debug, Clone, PartialEq)]
+pub struct ComposerGroup {
+    /// Chave normalizada ("chopin"); vazia no grupo "Outros"
+    pub key: String,
+    pub name: String,
+    pub songs: Vec<usize>,
+}
+
+/// Chave para agrupar nomes do mesmo autor: o apelido, sem acentos, em
+/// minúsculas, com alguns nomes alternativos unificados.
+/// "Frédéric François Chopin", "Frederic Chopin", "Chopin" → "chopin".
+pub fn composer_key(name: &str) -> String {
+    let last = name.split_whitespace().last().unwrap_or(name);
+    let k: String = last
+        .chars()
+        .flat_map(|c| c.to_lowercase())
+        .map(|c| match c {
+            'á' | 'à' | 'â' | 'ã' | 'ä' => 'a',
+            'é' | 'è' | 'ê' | 'ë' => 'e',
+            'í' | 'ì' | 'î' | 'ï' => 'i',
+            'ó' | 'ò' | 'ô' | 'õ' | 'ö' => 'o',
+            'ú' | 'ù' | 'û' | 'ü' => 'u',
+            'ç' => 'c',
+            'ñ' => 'n',
+            c => c,
+        })
+        .filter(|c| c.is_alphanumeric())
+        .collect();
+    match k.as_str() {
+        "czajkowski" | "tchaikovski" | "tschaikowsky" | "chaikovsky" | "tchaikovsky" => {
+            "tchaikovsky".into()
+        }
+        _ => k,
+    }
+}
+
+/// Nome a mostrar para autores conhecidos, independentemente da grafia do ficheiro.
+fn canonical_name(key: &str) -> Option<&'static str> {
+    Some(match key {
+        "chopin" => "Frédéric Chopin",
+        "tchaikovsky" => "Piotr Tchaikovsky",
+        "debussy" => "Claude Debussy",
+        "satie" => "Erik Satie",
+        "beethoven" => "Ludwig van Beethoven",
+        "bach" => "Johann Sebastian Bach",
+        "mozart" => "Wolfgang Amadeus Mozart",
+        "pachelbel" => "Johann Pachelbel",
+        "burgmuller" => "Friedrich Burgmüller",
+        "petzold" => "Christian Petzold",
+        "tiersen" => "Yann Tiersen",
+        _ => return None,
+    })
+}
+
 pub fn pretty_title_of(stem: &str) -> (String, Option<String>) {
     let stem = stem.replace('_', " ");
     // Tirar sufixos de cópia: " (1)", " (2)"…
@@ -397,6 +529,34 @@ mod tests {
         lib.queue_pos = Some(0);
         assert_eq!(lib.advance(), None);
         assert_eq!(lib.queue_pos, None);
+    }
+
+    #[test]
+    fn groups_by_composer_with_folders_and_filenames() {
+        let root = PathBuf::from("/m");
+        let mk = |p: &str| LibSong::with_root(PathBuf::from(p), Some(&root));
+        let lib = Library {
+            songs: vec![
+                mk("/m/Frédéric François Chopin_(1810 - 1849) - Waltz in C♯ Minor.mid"),
+                mk("/m/Frederic Chopin - Waltz in A Minor.mid"),
+                mk("/m/Chopin/Valsa Op. 64 Nº 2/valsa.mid"),
+                mk("/m/Piotr Iljicz Czajkowski - Dance of the Sugar Plum Fairy.mid"),
+                mk("/m/Interstellar.mid"),
+            ],
+            ..Default::default()
+        };
+        // Convenção de pastas: título e autor das pastas
+        assert_eq!(lib.songs[2].title, "Valsa Op. 64 Nº 2");
+        assert_eq!(lib.songs[2].composer.as_deref(), Some("Chopin"));
+
+        let g = lib.by_composer();
+        assert_eq!(g[0].name, "Frédéric Chopin");
+        assert_eq!(g[0].songs, vec![0, 1, 2]);
+        assert_eq!(g[1].name, "Piotr Tchaikovsky");
+        assert_eq!(g.last().unwrap().name, "Outros");
+        assert_eq!(g.last().unwrap().songs, vec![4]);
+        // Pesquisa pelo autor
+        assert!(lib.songs[3].matches("tchaikovsky") || lib.songs[3].matches("czajkowski"));
     }
 
     #[test]

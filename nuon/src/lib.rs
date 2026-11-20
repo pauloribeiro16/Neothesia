@@ -1477,7 +1477,7 @@ impl Label {
             styles: Vec::new(),
             icon: String::new(),
             bold: false,
-            font_family: Cow::Borrowed("Roboto"),
+            font_family: Cow::Borrowed(crate::font_system::DEFAULT_FAMILY),
         }
     }
 

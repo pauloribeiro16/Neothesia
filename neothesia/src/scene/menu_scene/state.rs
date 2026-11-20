@@ -32,6 +32,8 @@ pub struct UiState {
     pub recordings_song: Option<std::path::PathBuf>,
     /// Gravações carregadas para `Page::Recordings` (mais recente primeiro)
     pub recordings: Vec<crate::recording::Take>,
+    /// Música mostrada em `Page::Song`
+    pub song_page: Option<std::path::PathBuf>,
 
     pub range_detection: RangeDetection,
     pub keyboard_size: KeyboardSize,
@@ -56,6 +58,7 @@ impl UiState {
             result: None,
             recordings_song: None,
             recordings: Vec::new(),
+            song_page: None,
 
             page_stack,
             range_detection: RangeDetection::default(),
@@ -68,6 +71,14 @@ impl UiState {
         self.recordings = ctx.takes.list(&song);
         self.recordings_song = Some(song);
         self.go_to(Page::Recordings);
+    }
+
+    /// Abre a página de uma música (carrega também as gravações dela).
+    pub fn open_song(&mut self, ctx: &Context, song: std::path::PathBuf) {
+        self.recordings = ctx.takes.list(&song);
+        self.recordings_song = Some(song.clone());
+        self.song_page = Some(song);
+        self.go_to(Page::Song);
     }
 
     /// Volta a ler as gravações da música atual (depois de apagar, por exemplo).
@@ -153,6 +164,8 @@ pub enum Page {
     Results,
     /// Gravações de uma música (`UiState::recordings_song`)
     Recordings,
+    /// Página de uma música (`UiState::song_page`): resumo, evolução, gravações
+    Song,
 }
 
 pub fn connect_io(data: &UiState, ctx: &mut Context) {

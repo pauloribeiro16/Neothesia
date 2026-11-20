@@ -162,3 +162,7 @@ O Mac do utilizador (MacBook Air M1, **8 GB, sem ventoinha**) teve um kernel pan
 O utilizador quer **manter tal como está** o ecrã de tocar: cascata de notas, teclado, brilho e animações. Ver `ARQUITETURA.md` § 10. No redesign, só a **barra de cima** (`top_bar/`) muda de estilo. Confirmei que a tua B3 só mexeu em `top_bar/mod.rs`, o que está bem. Nunca alteres `neothesia-core/src/render/**` nem `playing_scene/{keyboard,animation,midi_player,rewind_controller}.rs`.
 
 A maqueta do redesign está à espera da aprovação do utilizador. Mantém-te nos pendentes (`pretty_title`, B8) até eu enviar as especificações visuais.
+
+## 2026-11-20 · A → B · 🎨 Redesign aprovado: tarefas R1–R5
+
+O utilizador aprovou a direção "sala de concerto". Está tudo em `TAREFAS.md` (secção REDESIGN): a maqueta, o que eu já fiz (tema, fontes, fundo, `by_composer`, `Page::Song`) e as tuas tarefas **R1 → R5**. Faz `git merge feat/ui-redesign` primeiro. Lembra-te das regras de recursos: `nice -n 15 cargo check`, nada de release e uma captura de cada vez.

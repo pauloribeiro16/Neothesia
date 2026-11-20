@@ -155,3 +155,40 @@ Já existe uma **versão inicial funcional** feita pelo A (`recordings_page.rs`)
   - Mostrar o trecho como "completa" quando cobre 90 % ou mais da música.
   - Botão "Sincronizar" que chama `sync_folder` e depois `reload_recordings`.
 - **Utilizador real:** a pasta do Drive `…/Musicas Piano/Chopin` já está ligada à "Waltz in C♯ Minor" (7 gravações importadas). Captura com dados reais: `NEOTHESIA_PAGE=recordings NEOTHESIA_RECORDINGS_SONG="<caminho da valsa>" ./target/release/neothesia`.
+
+---
+
+# 🎨 REDESIGN "Sala de concerto" (aprovado pelo utilizador em 2026-11-20)
+
+**Maqueta (referência visual obrigatória):** https://claude.ai/artifact/MbCKhD15iGuXLsTbTYWoqK
+Quatro ecrãs: "Biblioteca por autor", "Página da música", "Comparação visual" e "Ecrã de tocar". Se não conseguires abrir o link, as regras abaixo chegam.
+
+**O que o A já fez (no `feat/ui-redesign`, faz merge):**
+- `theme.rs` com a paleta nova: fundo `#0F0E13`, superfícies, marfim `text()`, dourado `accent()` (a única cor de ação), `on_accent()` (texto escuro sobre o dourado), `good()` azul e `warn()` laranja (só em dados), e `FONT_DISPLAY` (serifa New York).
+- Fontes: o texto normal passa a SF Pro sozinho. Para títulos usa `.font_family(theme::FONT_DISPLAY)`.
+- `widgets::page_title`, `widgets::eyebrow` (rótulo em maiúsculas) e `section_title` (já em serifa). O botão `primary()` é dourado com texto escuro.
+- Fundo dos menus calmo (sem riscas).
+- `Library`: cada `LibSong` tem `title` limpo, `composer` e `composer_key`. `ctx.library.by_composer()` → `Vec<ComposerGroup { key, name, songs }>` (o grupo "Outros" fica no fim).
+- Convenção de pastas: `<raiz>/<Autor>/<Música>/x.mid` dá autor e título a partir das pastas.
+- `Page::Song` + `self.state.open_song(ctx, path)` + uma versão mínima de `song_page.rs`. Captura: `NEOTHESIA_PAGE=song NEOTHESIA_SONG="<caminho>"`.
+
+**Regras visuais (todas as tarefas R):**
+1. Fundo calmo. Painéis com `theme::surface()`, borda `border()`, raio 14–18. Nada de cores saturadas fora do dourado e dos dados.
+2. **Um só botão dourado por ecrã** (a ação principal). O resto é `secondary`/`ghost`.
+3. Títulos de página e nomes de músicas em destaque em `FONT_DISPLAY`. O resto em SF (por omissão).
+4. Rótulos de secção com `widgets::eyebrow` ("A ESTUDAR", "AUTORES").
+5. Os números importantes em grande (24–28 px, semibold) com a legenda pequena por baixo, em `text_muted`.
+6. Usa sempre `title`/`composer` da `LibSong` ou `Library::pretty_title`. **Nunca mostres o nome do ficheiro.**
+7. ⛔ Ecrã de tocar: só a `top_bar` (ver `ARQUITETURA.md` § 10).
+
+| ID | Tarefa | Estado |
+|---|---|---|
+| **R1** | Navegação lateral partilhada (`menu_scene/shell.rs`, ficheiro novo, teu): logótipo "Neothasia" em serifa e itens Início, Biblioteca, Gravações, Estatísticas, Definições (item ativo com fundo dourado a 12 %). Largura 232 px; abaixo de 900 px de janela passa a só ícones (64 px). Bloco "Playlist" no fundo. | por fazer |
+| **R2** | Biblioteca por autor (`library_page.rs`): cabeçalho "Biblioteca" + "27 músicas · 16 autores", pesquisa e seletor **Autores / Músicas / Favoritas**. Secção "A ESTUDAR" = favoritas, em cartões grandes com anel de progresso (melhor precisão de `ctx.takes.list`), autor em dourado, título em serifa e botão ▶ redondo. Secção "AUTORES": grelha de 4 colunas com monograma redondo (inicial do apelido) e "N músicas". Clicar num autor mostra as músicas dele (lista com `list_row`). Clicar numa música abre `open_song`. A playlist passa a um painel que abre a partir do bloco da navegação lateral. | por fazer |
+| **R3** | Página da música (`song_page.rs`): migalhas "Biblioteca › Autor", título 46 px em serifa e etiquetas (dificuldade quando existir). Botões Editar, "Comparar a melhor" e **Tocar** (dourado). 4 cartões de números da melhor gravação **completa** (certas, andamento, regularidade, hesitações; o "era X ms" compara com a primeira gravação). "Evolução" com seletor Precisão / Andamento / Regularidade / Hesitações (`line_chart`, menor = melhor nas duas últimas). Lista de gravações com a **barra do trecho tocado** (`info.covered` sobre a duração da música), certas, andamento, hesitações e ▶. Apagar com confirmação. Substitui na prática a `recordings_page` (mantém-na a funcionar, ou encaminha para aqui). | por fazer |
+| **R4** | Menu (`main_page.rs`): troca o logótipo roxo (`banner.png`) por "Neothasia" em serifa, 56 px. Recentes com `pretty_title` e autor em subtítulo. Remove o ícone solto ao lado de "Sair". "Continuar" com título limpo. Na direção nova, o Início pode ser a mesma estrutura com a navegação lateral (R1). | por fazer |
+| **R5** | Resultado (`results_page.rs`) no estilo novo: precisão grande em serifa, cartões de números como na R3, gráfico por compasso com `good()`/`warn()`. | por fazer |
+
+Ordem: **R1 → R2 → R3 → R4 → R5**. Faz captura de cada ecrã (uma de cada vez, com `NEOTHESIA_CAPTURE_FRAME=30`) e compara com a maqueta antes de passares a tarefa para `em revisão`.
+
+**O A está a fazer:** A17, comparação por compasso (acordes não simultâneos, andamento local por compasso, mapa de compassos); A18, widget `piano_roll`; A19, **comparação na cascata** (as tuas notas por cima das do original num modo à parte, pedido do utilizador). Depois disso chega a tarefa R6, o ecrã "Comparação".
