@@ -7,7 +7,7 @@ use crate::{
     NeothesiaEvent, context::Context, icons, library::Library, song::Song, theme, widgets,
 };
 
-use super::song_page::{is_complete, song_duration};
+use super::song_page::is_complete;
 
 enum Act {
     Back,
@@ -42,8 +42,6 @@ impl super::MenuScene {
             .as_deref()
             .map(Library::pretty_title)
             .unwrap_or_default();
-        let song_path = self.state.recordings_song.clone().unwrap_or_default();
-        let dur = song_duration(ctx, ui, &song_path);
         let takes = &self.state.recordings;
 
         nuon::translate().x(x0).y(margin).build(ui, |ui| {
@@ -106,7 +104,7 @@ impl super::MenuScene {
                     let trailing = 36.0 * 2.0 + theme::SPACE_S * 3.0;
                     let best = takes
                         .iter()
-                        .filter(|t| is_complete(t, dur))
+                        .filter(|t| is_complete(t, takes))
                         .map(|t| t.accuracy)
                         .fold(0.0, f32::max);
                     for (i, t) in takes.iter().enumerate() {
@@ -136,7 +134,7 @@ impl super::MenuScene {
                             "{:.0}%   {}{}",
                             t.accuracy * 100.0,
                             t.date_label(),
-                            if t.accuracy == best && is_complete(t, dur) { "   ★ melhor" } else { "" }
+                            if t.accuracy == best && is_complete(t, takes) { "   ★ melhor" } else { "" }
                         );
                         nuon::translate().build(ui, |ui| {
                             if widgets::list_row(("rec_row", i), row_w, &title)

@@ -34,6 +34,12 @@ pub struct UiState {
     pub recordings: Vec<crate::recording::Take>,
     /// Música mostrada em `Page::Song`
     pub song_page: Option<std::path::PathBuf>,
+    /// Música em comparação em `Page::Compare`
+    pub compare_song: Option<std::path::PathBuf>,
+    /// Análise da comparação (`Page::Compare`)
+    pub compare: Option<crate::recording::analysis::Analysis>,
+    /// Gravação em comparação (`Page::Compare`)
+    pub compare_take: Option<crate::recording::Take>,
 
     pub range_detection: RangeDetection,
     pub keyboard_size: KeyboardSize,
@@ -59,6 +65,9 @@ impl UiState {
             recordings_song: None,
             recordings: Vec::new(),
             song_page: None,
+            compare_song: None,
+            compare: None,
+            compare_take: None,
 
             page_stack,
             range_detection: RangeDetection::default(),
@@ -79,6 +88,20 @@ impl UiState {
         self.recordings_song = Some(song.clone());
         self.song_page = Some(song);
         self.go_to(Page::Song);
+    }
+
+    /// Abre a comparação de `take` com `song` (corre a análise).
+    pub fn open_compare(
+        &mut self,
+        song: std::path::PathBuf,
+        take: crate::recording::Take,
+    ) -> Result<(), String> {
+        let analysis = crate::recording::analysis::analyze_files(&song, &take.midi_path)?;
+        self.compare = Some(analysis);
+        self.compare_take = Some(take);
+        self.compare_song = Some(song);
+        self.go_to(Page::Compare);
+        Ok(())
     }
 
     /// Volta a ler as gravações da música atual (depois de apagar, por exemplo).
@@ -173,6 +196,8 @@ pub enum Page {
     Recordings,
     /// Página de uma música (`UiState::song_page`): resumo, evolução, gravações
     Song,
+    /// Comparação da gravação com o original (`UiState::compare`)
+    Compare,
 }
 
 pub fn connect_io(data: &UiState, ctx: &mut Context) {

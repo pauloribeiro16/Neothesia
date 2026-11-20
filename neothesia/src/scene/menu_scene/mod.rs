@@ -16,6 +16,7 @@ mod results_page;
 mod song_page;
 mod settings;
 mod shell;
+mod compare_page;
 mod tracks;
 
 use std::{collections::HashSet, future::Future, time::Duration};
@@ -100,6 +101,34 @@ impl MenuScene {
             Some("library") => iced_state.go_to(Page::Library),
             Some("settings") => iced_state.go_to(Page::Settings),
             Some("tracks") => iced_state.go_to(Page::TrackSelection),
+            Some("compare") => {
+                // NEOTHESIA_SONG=<música> compara com a melhor gravação real;
+                // sem NEOTHESIA_SONG usa a demonstração (test.mid com takes
+                // semeados numa pasta temporária)
+                let song = match std::env::var_os("NEOTHESIA_SONG")
+                    .filter(|s| !s.is_empty())
+                {
+                    Some(path) => path.into(),
+                    None => {
+                        crate::recording::demo::seed_takes(ctx);
+                        crate::recording::demo::song_path()
+                    }
+                };
+                let takes = ctx.takes.list(&song);
+                if let Some(take) = takes
+                    .iter()
+                    .filter(|t| {
+                        crate::scene::menu_scene::song_page::is_complete(t, &takes)
+                    })
+                    .max_by(|a, b| a.accuracy.total_cmp(&b.accuracy))
+                    .or_else(|| takes.first())
+                    .cloned()
+                {
+                    if let Err(e) = iced_state.open_compare(song, take) {
+                        log::error!("compare demo/real falhou: {e}");
+                    }
+                }
+            }
             Some("song") => {
                 // NEOTHESIA_SONG=/caminho/musica.mid (por omissão, test.mid de demonstração)
                 // Com NEOTHESIA_SONG usa as gravações reais; sem ele, a demonstração.
@@ -195,6 +224,7 @@ impl MenuScene {
             Page::Results => self.results_page_ui(ctx, &mut nuon),
             Page::Recordings => self.recordings_page_ui(ctx, &mut nuon),
             Page::Song => self.song_page_ui(ctx, &mut nuon),
+            Page::Compare => self.compare_page_ui(ctx, &mut nuon),
         }
 
         self.nuon = nuon;
@@ -375,6 +405,7 @@ impl Scene for MenuScene {
             Page::Results => self.results_page_window_event(ctx, event),
             Page::Recordings => self.recordings_page_window_event(ctx, event),
             Page::Song => self.song_page_window_event(ctx, event),
+            Page::Compare => self.compare_page_window_event(ctx, event),
             Page::Settings => {
                 if event.key_pressed(Key::Named(NamedKey::Escape)) {
                     self.state.go_back();

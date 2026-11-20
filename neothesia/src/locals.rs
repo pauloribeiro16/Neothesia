@@ -527,6 +527,73 @@ pub mod settings {
     }
 }
 
+pub mod compare {
+    use super::LOCAL;
+
+    pub fn tempo_curve() -> String {
+        match LOCAL.as_str() {
+            "pt" => "Andamento ao longo da peça".into(),
+            _ => "Tempo along the piece".into(),
+        }
+    }
+
+    pub fn bars_map() -> String {
+        match LOCAL.as_str() {
+            "pt" => "Compassos".into(),
+            _ => "Bars".into(),
+        }
+    }
+
+    pub fn piano_roll() -> String {
+        match LOCAL.as_str() {
+            "pt" => "Zoom (4 compassos)".into(),
+            _ => "Zoom (4 bars)".into(),
+        }
+    }
+
+    pub fn improve() -> String {
+        match LOCAL.as_str() {
+            "pt" => "O que melhorar".into(),
+            _ => "What to improve".into(),
+        }
+    }
+
+    pub fn no_insights() -> String {
+        match LOCAL.as_str() {
+            "pt" => "Sem sugestões nesta comparação. Boa!".into(),
+            _ => "No suggestions in this comparison. Nice!".into(),
+        }
+    }
+
+    pub fn ins_chords() -> &'static str {
+        match LOCAL.as_str() {
+            "pt" => "Acordes espalhados",
+            _ => "Spread chords",
+        }
+    }
+
+    pub fn ins_slow() -> &'static str {
+        match LOCAL.as_str() {
+            "pt" => "A abrandar",
+            _ => "Slowing down",
+        }
+    }
+
+    pub fn ins_hesitation() -> &'static str {
+        match LOCAL.as_str() {
+            "pt" => "Hesitação",
+            _ => "Hesitation",
+        }
+    }
+
+    pub fn ins_strength() -> &'static str {
+        match LOCAL.as_str() {
+            "pt" => "Ponto forte",
+            _ => "Strength",
+        }
+    }
+}
+
 pub mod results {
     use super::LOCAL;
 
