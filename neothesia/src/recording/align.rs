@@ -87,6 +87,9 @@ pub struct Alignment {
     /// Trecho da música coberto pela gravação (tempo do original)
     pub covered_start: Duration,
     pub covered_end: Duration,
+    /// Acordes emparelhados: (tempo no original, tempo na gravação), em segundos,
+    /// por ordem. Base do mapa de tempo usado pela análise por compasso.
+    pub anchors: Vec<(f64, f64)>,
 }
 
 /// Regularidade local: para cada acorde emparelhado, ajusta uma reta só aos
@@ -145,6 +148,7 @@ pub fn align(expected: &[ExpectedNote], played: &[PlayedNote], bars: &[Duration]
             tempo_ratio: 1.0,
             covered_start: Duration::ZERO,
             covered_end: Duration::ZERO,
+            anchors: Vec::new(),
         };
     }
 
@@ -220,6 +224,7 @@ pub fn align(expected: &[ExpectedNote], played: &[PlayedNote], bars: &[Duration]
             tempo_ratio: 1.0,
             covered_start: Duration::ZERO,
             covered_end: Duration::ZERO,
+            anchors: Vec::new(),
         };
     };
     let last_e = pairs.last().unwrap().0;
@@ -302,6 +307,7 @@ pub fn align(expected: &[ExpectedNote], played: &[PlayedNote], bars: &[Duration]
         tempo_ratio: if a > 1e-9 { (1.0 / a) as f32 } else { 1.0 },
         covered_start: Duration::from_secs_f64(cs),
         covered_end: Duration::from_secs_f64(ce),
+        anchors: xs.iter().cloned().zip(ys.iter().cloned()).collect(),
     }
 }
 

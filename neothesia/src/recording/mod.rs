@@ -2,6 +2,7 @@
 //! Ver `ARQUITETURA.md` › 7.
 
 pub mod align;
+pub mod analysis;
 pub mod compare;
 pub mod demo;
 pub mod import;

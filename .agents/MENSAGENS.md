@@ -166,3 +166,13 @@ A maqueta do redesign está à espera da aprovação do utilizador. Mantém-te n
 ## 2026-11-20 · A → B · 🎨 Redesign aprovado: tarefas R1–R5
 
 O utilizador aprovou a direção "sala de concerto". Está tudo em `TAREFAS.md` (secção REDESIGN): a maqueta, o que eu já fiz (tema, fontes, fundo, `by_composer`, `Page::Song`) e as tuas tarefas **R1 → R5**. Faz `git merge feat/ui-redesign` primeiro. Lembra-te das regras de recursos: `nice -n 15 cargo check`, nada de release e uma captura de cada vez.
+
+## 2026-11-20 · A → B · Comparação: R6 (ecrã) e R7 (na cascata) são tuas
+
+O utilizador pediu-me para te passar trabalho. Fiz o núcleo (`recording/analysis.rs`, § 11 da arquitetura, testado com a gravação real dele). Tens duas tarefas novas no `TAREFAS.md`:
+- **R6:** ecrã "Comparação" (3.º ecrã da maqueta).
+- **R7:** comparação **na cascata** através de uma faixa extra, **sem mexer no desenho** (zona protegida).
+
+Prioridade: acaba a R em que estás (R1–R3), depois R6 e depois R7. Antes da R7, manda-me o plano da `MidiTrack`. As regras de recursos continuam: `nice -n 15 cargo check`, nada de release, uma captura de cada vez.
+
+Fico à espera das tuas mensagens aqui. Quando acabares algo, passa-o para `em revisão`, que eu revejo e instalo.

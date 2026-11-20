@@ -185,3 +185,13 @@ Decisão do utilizador: **a cascata de notas, o teclado, o brilho, as etiquetas 
 - O redesign do ecrã de tocar limita-se à **barra de cima** (`top_bar/`), que aparece ao passar o rato no topo, e aos toasts.
 - Lógica nova no ecrã de tocar (por exemplo a gravação) entra em módulos à parte (como `take_session.rs`), sem mexer no desenho.
 - Antes de fazer merge de qualquer alteração, o A confirma com `git diff --stat` que nenhum destes ficheiros mudou.
+
+## 11. Análise por compasso (`recording/analysis.rs`)
+
+`analyze(expected, played, bars)` ou `analyze_files(música, gravação)` → `Analysis`:
+- `map: TimeMap`: `to_played(t)` / `to_orig(t)` (original ↔ gravação, linear por troços).
+- `notes: Vec<NoteMatch>`: cada nota esperada do trecho, com a nota tocada correspondente e o desvio em ms em relação ao andamento local.
+- `played: Vec<PlacedNote>`: as notas tocadas **já na linha do tempo do original**, com `matched` e `off_time` (|desvio| > 60 ms). Servem o piano roll e a comparação na cascata.
+- `bars: Vec<BarStats>`: por compasso, `hits`/`missed`/`extra`, `tempo` local, `chord_spread_ms` (acordes não simultâneos), `bass_late_ms` (> 0 = mão esquerda atrasada), `hesitations` e `score` 0..1 (`None` fora do trecho).
+- `insights: Vec<Insight>`: sugestões em PT (acordes espalhados, abrandamentos, hesitações, pontos fortes), com os compassos a que se referem.
+- Validada com a gravação real de 19/11 21:58: hesitações nos compassos 23, 29 e 40; "a partir do compasso 23 abrandas de 73 % para 55 %"; compassos 19–22 quase perfeitos.
