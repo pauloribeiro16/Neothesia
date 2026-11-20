@@ -79,7 +79,7 @@ fn folder_name(path: &std::path::Path) -> String {
 
 /// Uma gravação é "parcial" se cobre menos de metade do maior trecho
 /// (mesma regra da `recordings_page`).
-fn is_partial(t: &Take, all: &[Take]) -> bool {
+pub(super) fn is_partial(t: &Take, all: &[Take]) -> bool {
     let len = |t: &Take| {
         t.info
             .covered
@@ -350,10 +350,28 @@ impl super::MenuScene {
 }
 
 /// Seletor Autores / Músicas / Favoritas
-fn segmented(ui: &mut nuon::Ui, id: &str, w: f32, options: &[View], selected: View) -> Option<usize> {
+pub(super) fn segmented(
+    ui: &mut nuon::Ui,
+    id: &str,
+    w: f32,
+    options: &[View],
+    selected: View,
+) -> Option<usize> {
+    let labels: Vec<String> = options.iter().map(|v| v.label()).collect();
+    let sel = View::ALL.iter().position(|v| *v == selected).unwrap_or(0);
+    segmented_labels(ui, id, w, &labels, sel)
+}
+
+/// Seletor segmentado genérico (também usado na página da música)
+pub(super) fn segmented_labels(
+    ui: &mut nuon::Ui,
+    id: &str,
+    w: f32,
+    labels: &[String],
+    selected: usize,
+) -> Option<usize> {
     let h = 36.0;
     let pad = 3.0;
-    let labels: Vec<String> = options.iter().map(|v| v.label()).collect();
 
     let layouts: Vec<_> = labels
         .iter()
@@ -376,7 +394,7 @@ fn segmented(ui: &mut nuon::Ui, id: &str, w: f32, options: &[View], selected: Vi
 
     let mut clicked = None;
     for (i, layout) in layouts.into_iter().enumerate() {
-        let is_sel = options[i] == selected;
+        let is_sel = i == selected;
         let (color, hover, preseed, font_color) = if is_sel {
             (
                 theme::accent(),

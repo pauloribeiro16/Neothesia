@@ -105,6 +105,7 @@ impl MenuScene {
                 let song = std::env::var_os("NEOTHESIA_SONG")
                     .map(Into::into)
                     .unwrap_or_else(crate::recording::demo::song_path);
+                crate::recording::demo::seed_takes(ctx);
                 iced_state.open_song(ctx, song);
             }
             Some("results") => {
