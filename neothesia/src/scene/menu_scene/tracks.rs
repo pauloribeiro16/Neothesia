@@ -1,13 +1,19 @@
+//! Página "Faixas": cartões de faixa com cor do instrumento, contagem de
+//! notas e seletor Auto / Humano / Mudo.
+
 use midi_file::MidiTrack;
 use nuon::TextAlign;
-use std::hash::Hash;
 
 use crate::{
     context::Context,
+    icons,
+    locals,
     song::{PlayerConfig, TrackConfig},
+    theme,
+    widgets,
 };
 
-use super::{icons, neo_btn_icon, state};
+use super::state;
 
 pub const CARD_W: f32 = 344.0;
 pub const CARD_H: f32 = 126.0;
@@ -17,99 +23,128 @@ impl super::MenuScene {
         let win_w = ctx.window_state.logical_size.width;
         let win_h = ctx.window_state.logical_size.height;
         let bottom_bar_h = 60.0;
+        let header_h = 56.0;
 
-        nuon::translate().x(0.0).y(win_h).build(ui, |ui| {
-            // Bottom Margin
-            nuon::translate().y(-10.0).add_to_current(ui);
-
-            nuon::translate().y(-bottom_bar_h).add_to_current(ui);
-
-            let gap = 10.0;
-            let w = 80.0;
-            let h = bottom_bar_h;
-
-            nuon::translate().x(0.0).build(ui, |ui| {
-                nuon::translate().x(gap).add_to_current(ui);
-
-                if neo_btn_icon(ui, w, h, icons::left_arrow_icon()) {
-                    self.state.go_back();
-                }
-
-                nuon::translate().x(-w - gap).add_to_current(ui);
-            });
-
-            nuon::translate().x(win_w).build(ui, |ui| {
-                nuon::translate().x(-w - gap).add_to_current(ui);
-
-                if neo_btn_icon(ui, w, h, icons::play_icon()) {
-                    state::play(&self.state, ctx);
-                }
-            });
+        // ── Cabeçalho ────────────────────────────────────────────────
+        nuon::translate().x(theme::SPACE_XL).build(ui, |ui| {
+            nuon::label()
+                .y(theme::SPACE_S)
+                .size(win_w - theme::SPACE_XL * 2.0, 44.0)
+                .font_size(theme::FONT_XXL)
+                .color(theme::text())
+                .bold(true)
+                .text_justify(nuon::TextAlign::Start)
+                .text(locals::menu::tracks())
+                .build(ui);
         });
 
-        if let Some(song) = self.state.song.as_mut() {
-            nuon::scroll("tracks_scroll")
-                .scissor_size(win_w, (win_h - bottom_bar_h).max(0.0))
+        // ── Barra inferior ───────────────────────────────────────────
+        nuon::translate().y(win_h - bottom_bar_h).build(ui, |ui| {
+            let btn_h = 44.0;
+
+            nuon::translate()
+                .x(theme::SPACE_L)
+                .y(nuon::center_y(bottom_bar_h, btn_h))
                 .build(ui, |ui| {
-                    let gap = 14.0;
-
-                    let mut tracks = song
-                        .file
-                        .tracks
-                        .iter()
-                        .filter(|t| !t.notes.is_empty())
-                        .enumerate();
-
-                    let layout = CardsLayout::new(win_w, tracks.clone().count());
-
-                    let top_margin = 60.0;
-
-                    nuon::translate().y(top_margin).add_to_current(ui);
-
-                    loop {
-                        let mut end = false;
-                        nuon::translate()
-                            .x(nuon::center_x(win_w, layout.width))
-                            .build(ui, |ui| {
-                                for _ in 0..layout.columns {
-                                    let Some((id, track)) = tracks.next() else {
-                                        end = true;
-                                        break;
-                                    };
-
-                                    let config = &song.config.tracks[track.track_id];
-
-                                    match self::track_card(
-                                        ctx,
-                                        ui,
-                                        nuon::Id::hash_with(|h| {
-                                            "track_card".hash(h);
-                                            id.hash(h);
-                                        }),
-                                        track,
-                                        config,
-                                    ) {
-                                        TrackCardEvent::PlayerConfig(player) => {
-                                            song.config.tracks[track.track_id].player = player;
-                                        }
-                                        TrackCardEvent::SetVisible(visible) => {
-                                            song.config.tracks[track.track_id].visible = visible;
-                                        }
-                                        TrackCardEvent::Idle => {}
-                                    }
-
-                                    nuon::translate().x(CARD_W + gap).add_to_current(ui);
-                                }
-                            });
-
-                        nuon::translate().y(CARD_H + gap).add_to_current(ui);
-
-                        if end {
-                            break;
-                        }
+                    if widgets::button(("tracks_back", 0), "")
+                        .icon(icons::left_arrow_icon())
+                        .size(btn_h, btn_h)
+                        .build(ui)
+                        .clicked
+                    {
+                        self.state.go_back();
                     }
                 });
-        }
+
+            nuon::translate()
+                .x(win_w - theme::SPACE_L - btn_h)
+                .y(nuon::center_y(bottom_bar_h, btn_h))
+                .build(ui, |ui| {
+                    if widgets::button(("tracks_play", 0), "")
+                        .icon(icons::play_icon())
+                        .size(btn_h, btn_h)
+                        .primary()
+                        .build(ui)
+                        .clicked
+                    {
+                        state::play(&self.state, ctx);
+                    }
+                });
+        });
+
+        // ── Cartões ──────────────────────────────────────────────────
+        let Some(song) = self.state.song.as_mut() else {
+            return;
+        };
+
+        nuon::translate()
+            .y(header_h + theme::SPACE_S)
+            .build(ui, |ui| {
+                nuon::scroll("tracks_scroll")
+                    .scissor_size(win_w, (win_h - header_h - bottom_bar_h).max(0.0))
+                    .build(ui, |ui| {
+                        let gap = theme::SPACE_M;
+
+                        let tracks = song
+                            .file
+                            .tracks
+                            .iter()
+                            .filter(|t| !t.notes.is_empty())
+                            .enumerate();
+
+                        let layout = CardsLayout::new(win_w, tracks.count());
+
+                        nuon::translate().y(theme::SPACE_S).add_to_current(ui);
+
+                        let mut tracks = song
+                            .file
+                            .tracks
+                            .iter()
+                            .filter(|t| !t.notes.is_empty())
+                            .enumerate();
+
+                        loop {
+                            let mut end = false;
+                            nuon::translate()
+                                .x(nuon::center_x(win_w, layout.width))
+                                .build(ui, |ui| {
+                                    for _ in 0..layout.columns {
+                                        let Some((id, track)) = tracks.next() else {
+                                            end = true;
+                                            break;
+                                        };
+
+                                        let config = &song.config.tracks[track.track_id];
+
+                                        match self::track_card(
+                                            ctx,
+                                            ui,
+                                            widgets::wid(("track_card", id)),
+                                            track,
+                                            config,
+                                        ) {
+                                            TrackCardEvent::PlayerConfig(player) => {
+                                                song.config.tracks[track.track_id].player = player;
+                                            }
+                                            TrackCardEvent::SetVisible(visible) => {
+                                                song.config.tracks[track.track_id].visible =
+                                                    visible;
+                                            }
+                                            TrackCardEvent::Idle => {}
+                                        }
+
+                                        nuon::translate().x(CARD_W + gap).add_to_current(ui);
+                                    }
+                                });
+
+                            nuon::translate().y(CARD_H + gap).add_to_current(ui);
+
+                            if end {
+                                break;
+                            }
+                        }
+                    });
+            });
     }
 }
 
@@ -120,7 +155,7 @@ struct CardsLayout {
 
 impl CardsLayout {
     fn new(w: f32, tracks_count: usize) -> Self {
-        const GAP: f32 = 14.0;
+        const GAP: f32 = theme::SPACE_M;
 
         const LAYOUT_1: f32 = CARD_W;
         const LAYOUT_2: f32 = LAYOUT_1 + GAP + CARD_W;
@@ -157,19 +192,14 @@ enum TrackCardEvent {
 fn track_card(
     ctx: &Context,
     ui: &mut nuon::Ui,
-    id: impl Into<nuon::Id>,
+    id: nuon::Id,
     track: &MidiTrack,
     config: &TrackConfig,
 ) -> TrackCardEvent {
-    let card_w = CARD_W;
-    let card_h = CARD_H;
-
-    let pad = 16.0;
-
-    let id = id.into();
+    let pad = theme::SPACE_L;
 
     let track_color = if !config.visible {
-        nuon::Color::new_u8(102, 102, 102, 1.0)
+        theme::text_faint()
     } else {
         let color_id = track.track_color_id % ctx.config.color_schema().len();
         let color = &ctx.config.color_schema()[color_id].base;
@@ -177,142 +207,135 @@ fn track_card(
     };
 
     let title = if track.has_drums && !track.has_other_than_drums {
-        "Percussion"
+        locals::tracks::percussion()
     } else {
         let instrument_id = track
             .programs
             .last()
             .map(|p| p.program as usize)
             .unwrap_or(0);
-        midi_file::INSTRUMENT_NAMES[instrument_id]
+        midi_file::INSTRUMENT_NAMES[instrument_id].to_owned()
     };
 
-    let subtitle = format!("{} Notes", track.notes.len());
+    let subtitle = locals::tracks::notes(track.notes.len());
 
-    nuon::quad()
-        .size(card_w, card_h)
-        .color([37, 35, 42])
-        .border_radius([12.0; 4])
-        .build(ui);
+    theme::panel(ui, CARD_W, CARD_H);
 
-    let inner_card_w = card_w - pad * 2.0;
-    let _inner_card_h = card_h - pad * 2.0;
-
-    let icon_size = 40.0;
-
+    let inner_w = CARD_W - pad * 2.0;
     let mut res = TrackCardEvent::Idle;
 
     nuon::translate().pos(pad, pad).build(ui, |ui| {
-        let accent = track_color;
-        let accent_hover = nuon::Color::new(
-            (accent.r + 0.05).min(1.0),
-            (accent.g + 0.05).min(1.0),
-            (accent.b + 0.05).min(1.0),
-            1.0,
-        );
-
-        let regular = nuon::Color::from([74, 68, 88]);
-        let regular_hover = nuon::Color::from([87, 81, 101]);
-
-        if nuon::button()
-            .id(nuon::Id::hash_with(|h| {
-                id.as_raw().hash(h);
-                "visible".hash(h);
-            }))
-            .size(icon_size, icon_size)
-            .color(accent)
-            .hover_color(accent_hover)
-            .preseed_color(accent)
-            .border_radius([255.0; 4])
+        // Chip de cor: clicar alterna a faixa visível/muda
+        if nuon::click_area(widgets::wid((id.as_raw(), "visible")))
+            .size(30.0, 30.0)
             .build(ui)
+            .is_clicked()
         {
             res = TrackCardEvent::SetVisible(!config.visible);
         }
 
-        let btn_w = inner_card_w / 3.0;
+        nuon::circle(15.0)
+            .color(if config.visible {
+                track_color
+            } else {
+                theme::surface_sunken()
+            })
+            .border_color(if config.visible {
+                theme::border()
+            } else {
+                theme::border_strong()
+            })
+            .border_width(1.0)
+            .build(ui);
 
-        let labels_x = icon_size + 15.0;
-        nuon::translate().x(labels_x).build(ui, |ui| {
-            let label_h = icon_size / 2.0;
-            let label_w = inner_card_w - labels_x;
-
+        if !config.visible {
             nuon::label()
-                .size(label_w, label_h)
-                .text(title)
-                .text_justify(TextAlign::Start)
-                .font_size(16.0)
+                .size(30.0, 30.0)
+                .font_size(18.0)
+                .color(theme::text_faint())
+                .text("×")
                 .build(ui);
+        }
 
+        // Nome do instrumento + contagem de notas
+        nuon::translate().x(30.0 + theme::SPACE_M).build(ui, |ui| {
+            let text_w = inner_w - 30.0 - theme::SPACE_M;
             nuon::label()
-                .y(label_h)
-                .size(label_w, label_h)
-                .text(subtitle)
+                .size(text_w, 20.0)
                 .text_justify(TextAlign::Start)
-                .font_size(14.0)
+                .font_size(theme::FONT_M)
+                .color(theme::text())
+                .text(theme::fit_text(&title, text_w, theme::FONT_M))
+                .build(ui);
+            nuon::label()
+                .y(20.0)
+                .size(text_w, 18.0)
+                .text_justify(TextAlign::Start)
+                .font_size(theme::FONT_S)
+                .color(theme::text_muted())
+                .text(subtitle)
                 .build(ui);
         });
 
-        nuon::translate().y(icon_size + 15.0).build(ui, |ui| {
-            let color = |m: PlayerConfig| {
-                if m == config.player { accent } else { regular }
-            };
-            let hover_color = |m: PlayerConfig| {
-                if m == config.player {
-                    accent_hover
+        // Seletor Auto / Humano / Mudo
+        nuon::translate().y(56.0).build(ui, |ui| {
+            let seg_h = 40.0;
+            let track_w = inner_w;
+
+            nuon::quad()
+                .size(track_w, seg_h)
+                .color(theme::surface_sunken())
+                .border_color(theme::border())
+                .border_width(1.0)
+                .border_radius([theme::RADIUS_M; 4])
+                .build(ui);
+
+            let options = [
+                (PlayerConfig::Auto, locals::tracks::auto()),
+                (PlayerConfig::Human, locals::tracks::human()),
+                (PlayerConfig::Mute, locals::tracks::mute()),
+            ];
+            let seg_w = (track_w - 6.0) / options.len() as f32;
+
+            for (i, (mode, label)) in options.iter().enumerate() {
+                let selected = *mode == config.player;
+                let x = 3.0 + seg_w * i as f32;
+
+                let (color, hover, preseed, font_color) = if selected {
+                    (
+                        theme::accent(),
+                        theme::accent().mix(theme::accent_2(), 0.25),
+                        theme::accent().mix(theme::accent_2(), 0.35),
+                        theme::text(),
+                    )
                 } else {
-                    regular_hover
+                    (
+                        theme::surface_sunken(),
+                        theme::surface_hover(),
+                        theme::surface_hover(),
+                        theme::text_muted(),
+                    )
+                };
+
+                if nuon::button()
+                    .id(widgets::wid((id.as_raw(), format!("player-{i}"))))
+                    .pos(x, 3.0)
+                    .size(seg_w, seg_h - 6.0)
+                    .color(color)
+                    .hover_color(hover)
+                    .preseed_color(preseed)
+                    .font_color(font_color)
+                    .border_radius([theme::RADIUS_S; 4])
+                    .label_layout(
+                        nuon::TextLayout::new(label.clone())
+                            .size(theme::FONT_S)
+                            .text_justify(TextAlign::Center)
+                            .text_align(TextAlign::Center),
+                    )
+                    .build(ui)
+                {
+                    res = TrackCardEvent::PlayerConfig(*mode);
                 }
-            };
-
-            if nuon::button()
-                .id(nuon::Id::hash_with(|h| {
-                    id.as_raw().hash(h);
-                    "mute".hash(h);
-                }))
-                .x(0.0)
-                .size(btn_w, 40.0)
-                .color(color(PlayerConfig::Mute))
-                .hover_color(hover_color(PlayerConfig::Mute))
-                .preseed_color(color(PlayerConfig::Mute))
-                .border_radius([255.0, 0.0, 0.0, 255.0])
-                .label("Mute")
-                .build(ui)
-            {
-                res = TrackCardEvent::PlayerConfig(PlayerConfig::Mute);
-            }
-
-            if nuon::button()
-                .id(nuon::Id::hash_with(|h| {
-                    id.as_raw().hash(h);
-                    "auto".hash(h);
-                }))
-                .x(btn_w)
-                .size(btn_w, 40.0)
-                .color(color(PlayerConfig::Auto))
-                .hover_color(hover_color(PlayerConfig::Auto))
-                .preseed_color(color(PlayerConfig::Auto))
-                .border_radius([0.0; 4])
-                .label("Auto Play")
-                .build(ui)
-            {
-                res = TrackCardEvent::PlayerConfig(PlayerConfig::Auto);
-            }
-
-            if nuon::button()
-                .id(nuon::Id::hash_with(|h| {
-                    id.as_raw().hash(h);
-                    "human".hash(h);
-                }))
-                .x(btn_w * 2.0)
-                .size(btn_w, 40.0)
-                .color(color(PlayerConfig::Human))
-                .hover_color(hover_color(PlayerConfig::Human))
-                .preseed_color(color(PlayerConfig::Human))
-                .border_radius([0.0, 255.0, 255.0, 0.0])
-                .label("Play Along")
-                .build(ui)
-            {
-                res = TrackCardEvent::PlayerConfig(PlayerConfig::Human);
             }
         });
     });

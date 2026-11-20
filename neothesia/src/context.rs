@@ -64,9 +64,26 @@ impl Context {
 
         let library = crate::library::Library::load();
         let takes = crate::recording::TakeStore::new();
-        let imported = crate::recording::import::sync_all(&library, &takes);
-        if imported > 0 {
-            log::info!("{imported} gravação(ões) importada(s) das pastas ligadas");
+        // Importar gravações das pastas ligadas (ex.: Google Drive) em segundo plano:
+        // o Drive pode ser lento ou ter ficheiros só na cloud, e isso nunca pode
+        // bloquear o arranque da app.
+        {
+            let links = library.links.clone();
+            let store = takes.clone();
+            std::thread::Builder::new()
+                .name("import-gravacoes".into())
+                .spawn(move || {
+                    let n: usize = links
+                        .iter()
+                        .map(|(folder, song)| {
+                            crate::recording::import::sync_folder(&store, song, folder).len()
+                        })
+                        .sum();
+                    if n > 0 {
+                        log::info!("{n} gravação(ões) importada(s) das pastas ligadas");
+                    }
+                })
+                .ok();
         }
 
         Self {
