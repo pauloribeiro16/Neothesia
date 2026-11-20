@@ -284,7 +284,8 @@ impl super::MenuScene {
             },
         );
 
-        let win_w = ctx.window_state.logical_size.width;
+        let (nav, nav_act) = self.side_nav(ctx, ui);
+        let win_w = nav.content_w;
         let win_h = ctx.window_state.logical_size.height;
 
         let bottom_bar_h = 60.0;
@@ -294,7 +295,7 @@ impl super::MenuScene {
         nuon::translate().y(win_h - bottom_bar_h).build(ui, |ui| {
             let btn_h = 44.0;
             nuon::translate()
-                .x(theme::SPACE_L)
+                .x(nav.content_x + theme::SPACE_L)
                 .y(nuon::center_y(bottom_bar_h, btn_h))
                 .build(ui, |ui| {
                     if widgets::button(("settings_back", 0), "")
@@ -309,23 +310,22 @@ impl super::MenuScene {
         });
 
         // Cabeçalho
-        nuon::translate().x(theme::SPACE_XL).build(ui, |ui| {
-            nuon::label()
-                .y(theme::SPACE_S)
-                .size(win_w - theme::SPACE_XL * 2.0, 44.0)
-                .font_size(theme::FONT_XXL)
-                .color(theme::text())
-                .bold(true)
-                .text_justify(nuon::TextAlign::Start)
-                .text(locals::menu::settings())
-                .build(ui);
+        let body_w = 650.0_f32.min(win_w - theme::SPACE_XL * 2.0);
+        let x0 = nav.content_x + nuon::center_x(win_w, body_w);
+
+        nuon::translate().x(x0).y(theme::SPACE_S).build(ui, |ui| {
+            widgets::page_title(ui, body_w, &locals::menu::settings());
         });
 
-        let body_w = 650.0;
-
-        nuon::translate().y(header_h + theme::SPACE_S).build(ui, |ui| {
+        nuon::translate()
+            .x(nav.content_x)
+            .y(header_h + theme::SPACE_S)
+            .build(ui, |ui| {
         nuon::scroll("settings_scroll")
-            .scissor_size(win_w, (win_h - header_h - bottom_bar_h - theme::SPACE_S).max(0.0))
+            .scissor_size(
+                win_w,
+                (win_h - header_h - bottom_bar_h - theme::SPACE_S).max(0.0),
+            )
             .build(ui, |ui| {
                 nuon::translate()
                     .x(nuon::center_x(win_w, body_w))
@@ -472,6 +472,8 @@ impl super::MenuScene {
                 nuon::translate().y(124.0).add_to_current(ui);
             });
         });
+
+        self.apply_nav_actions(ctx, nav_act);
     }
 }
 

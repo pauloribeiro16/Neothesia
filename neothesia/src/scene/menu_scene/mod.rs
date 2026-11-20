@@ -15,6 +15,7 @@ mod recordings_page;
 mod results_page;
 mod song_page;
 mod settings;
+mod shell;
 mod tracks;
 
 use std::{collections::HashSet, future::Future, time::Duration};

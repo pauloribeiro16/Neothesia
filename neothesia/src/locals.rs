@@ -588,6 +588,24 @@ pub mod library {
         }
     }
 
+    pub fn one_song() -> String {
+        match LOCAL.as_str() {
+            "pl" => "1 utwór".into(),
+            "de" => "1 Stück".into(),
+            "pt" => "1 música".into(),
+            _ => "1 song".into(),
+        }
+    }
+
+    pub fn songs_count() -> String {
+        match LOCAL.as_str() {
+            "pl" => "utworów".into(),
+            "de" => "Stücke".into(),
+            "pt" => "músicas".into(),
+            _ => "songs".into(),
+        }
+    }
+
     pub fn recent() -> String {
         match LOCAL.as_str() {
             "pl" => "Ostatnie".into(),
