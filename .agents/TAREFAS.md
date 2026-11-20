@@ -183,7 +183,7 @@ Quatro ecrãs: "Biblioteca por autor", "Página da música", "Comparação visua
 
 | ID | Tarefa | Estado |
 |---|---|---|
-| **R1** | Navegação lateral partilhada (`menu_scene/shell.rs`, ficheiro novo, teu): logótipo "Neothasia" em serifa e itens Início, Biblioteca, Gravações, Estatísticas, Definições (item ativo com fundo dourado a 12 %). Largura 232 px; abaixo de 900 px de janela passa a só ícones (64 px). Bloco "Playlist" no fundo. | por fazer |
+| **R1** | Navegação lateral partilhada (`menu_scene/shell.rs`, ficheiro novo, teu): logótipo "Neothasia" em serifa e itens Início, Biblioteca, Gravações, Estatísticas, Definições (item ativo com fundo dourado a 12 %). Largura 232 px; abaixo de 900 px de janela passa a só ícones (64 px). Bloco "Playlist" no fundo. | feito |
 | **R2** | Biblioteca por autor (`library_page.rs`) | feito |
 | **R3** | Página da música (`song_page.rs`) | feito |
 | **R4** | Menu (`main_page.rs`) | feito |
