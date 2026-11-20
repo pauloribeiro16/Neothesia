@@ -251,14 +251,7 @@ impl super::MenuScene {
     /// Aplica as ações da navegação (chamar no fim da página).
     pub fn apply_nav_actions(&mut self, ctx: &mut Context, act: NavActions) {
         if act.go_main {
-            // go_home() ainda não existe no UiState (campo privado); volta
-            // atrás, com limite, até ao Início. A pedir ao A para acrescentar.
-            for _ in 0..8 {
-                if self.state.current() == &Page::Main {
-                    break;
-                }
-                self.state.go_back();
-            }
+            self.state.go_home();
         }
         if act.go_library {
             self.state.go_to(Page::Library);
