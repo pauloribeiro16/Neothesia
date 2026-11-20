@@ -207,6 +207,7 @@ Demora cerca de 50 ms numa música inteira: **calcula só uma vez** quando a pá
 | **R3b** | Regra "completa" (≥ 90 % do maior trecho gravado) + migalhas com o nome canónico do autor | feito |
 | **R6** | Ecrã "Comparação" (`compare_page.rs`) | em revisão |
 | **R6a** | Correções do ecrã Comparação (mensagem do A "R3b e R6 aceites") | por fazer |
-| **R7** | **Comparação na cascata** (pedido explícito do utilizador). ⛔ **Sem mexer no desenho da cascata** (`ARQUITETURA.md` § 10). Abordagem obrigatória, a **faixa extra**: cria `neothesia/src/recording/cascade.rs` (autorizado, ficheiro novo) com `pub fn compare_song(song: &Path, take: &Take) -> Result<Song, String>`, que **(a)** carrega o `MidiFile` original; **(b)** corre `analyze_files`; **(c)** constrói uma `MidiTrack` nova com as notas de `analysis.played` (já no tempo do original) — `MidiNote` + os `MidiEvent` NoteOn/NoteOff correspondentes, `track_id` = nº de faixas, `track_color_id` diferente das outras; **(d)** devolve `Song` com essa faixa acrescentada, configurada como `PlayerConfig::Mute` (não soa) e visível. As faixas originais ficam como estão (soam). Botão "Ver na cascata" na R6 e em cada gravação: `connect_io` e `NeothesiaEvent::Play(song)`. **A gravação automática não pode gravar neste modo**: pede-me a flag (eu acrescento `ctx.compare_mode` ao `TakeSession`). | por fazer |
+| **R7** | Comparação na cascata (`recording/cascade.rs`) | em revisão |
+| **R2b** | A estudar (títulos e autor canónico), grelha de autores em 2 linhas, item "Gravações" com todas as músicas gravadas | por fazer |
 
 Ordem: termina primeiro a R1–R3 em que estiveres. Depois a **R6** e a seguir a **R7**. Antes de começares a R7, escreve em `MENSAGENS.md` como vais montar a `MidiTrack`, para eu validar.

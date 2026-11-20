@@ -88,6 +88,17 @@ pub struct Library {
 
 pub const MAX_RECENT: usize = 20;
 
+/// Caminho na forma exata em que está no disco.
+///
+/// No macOS o mesmo nome pode estar escrito com "é" composto (U+00E9) ou
+/// decomposto ("e" + U+0301). O disco aceita os dois, mas a comparação de
+/// `PathBuf` é byte a byte: sem isto, a música da biblioteca e a das favoritas
+/// ou gravações pareciam diferentes. Se o ficheiro não existir, fica como está.
+/// Usar sempre que um caminho vem de fora (ficheiro de texto, config, utilizador).
+pub fn canonical(p: &Path) -> PathBuf {
+    std::fs::canonicalize(p).unwrap_or_else(|_| p.to_path_buf())
+}
+
 fn store_path() -> PathBuf {
     let base = std::env::var_os("HOME")
         .filter(|h| !h.is_empty())
@@ -111,19 +122,23 @@ impl Library {
                 let Some((kind, path)) = line.split_once('\t') else {
                     continue;
                 };
+                let c = |p: &str| canonical(Path::new(p));
                 match kind {
-                    "folder" => lib.folders.push(PathBuf::from(path)),
-                    "queue" => lib.queue.push(PathBuf::from(path)),
-                    "fav" => lib.favorites.push(PathBuf::from(path)),
-                    "recent" => lib.recent.push(PathBuf::from(path)),
+                    "folder" => lib.folders.push(c(path)),
+                    "queue" => lib.queue.push(c(path)),
+                    "fav" => lib.favorites.push(c(path)),
+                    "recent" => lib.recent.push(c(path)),
                     "link" => {
                         if let Some((folder, song)) = path.split_once('\t') {
-                            lib.links.push((PathBuf::from(folder), PathBuf::from(song)));
+                            lib.links.push((c(folder), c(song)));
                         }
                     }
                     _ => {}
                 }
             }
+            // Regravar já na forma do disco (corrige ficheiros antigos)
+            lib.favorites.dedup();
+            lib.save();
         }
 
         lib.rescan();

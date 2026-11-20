@@ -132,6 +132,7 @@ impl TakeStore {
         if notes.is_empty() {
             return Ok(None);
         }
+        let song = &crate::library::canonical(song);
         let dir = self.song_dir(song);
         std::fs::create_dir_all(&dir)?;
 
@@ -179,6 +180,7 @@ impl TakeStore {
         played: &[PlayedNote],
         a: &super::align::Alignment,
     ) -> anyhow::Result<Take> {
+        let song = &crate::library::canonical(song);
         let dir = self.song_dir(song);
         std::fs::create_dir_all(&dir)?;
         let mut recorded_at = recorded_at;
@@ -216,7 +218,8 @@ impl TakeStore {
 
     /// Gravações de uma música, da mais recente para a mais antiga (da cache).
     pub fn list(&self, song: &Path) -> Vec<Take> {
-        self.list_all().into_iter().filter(|t| t.song == song).collect()
+        let key = crate::library::canonical(song);
+        self.list_all().into_iter().filter(|t| t.song == key).collect()
     }
 
     /// Todas as gravações de todas as músicas, da mais recente para a mais antiga.
@@ -313,7 +316,7 @@ fn meta_from_text(text: &str, midi_path: PathBuf, recorded_at: u64) -> Option<Ta
     for line in text.lines() {
         let Some((k, v)) = line.split_once('\t') else { continue };
         match k {
-            "song" => take.song = PathBuf::from(v),
+            "song" => take.song = crate::library::canonical(Path::new(v)),
             "duration_ms" => take.duration = Duration::from_millis(v.parse().unwrap_or(0)),
             "accuracy" => take.accuracy = v.parse().unwrap_or(0.0),
             "hits" => take.hits = v.parse().unwrap_or(0),
@@ -439,6 +442,21 @@ mod tests {
         let t = store.list(&song).pop().unwrap();
         worker.delete(&t).unwrap();
         assert!(store.list(&song).is_empty());
+    }
+
+    #[test]
+    fn composed_and_decomposed_names_are_the_same_song() {
+        // Caso real: o ficheiro da Valsa tem "é" decomposto no disco e foi
+        // guardado com "é" composto na biblioteca — as gravações sumiam.
+        let dir = tmp_dir("unicode");
+        std::fs::create_dir_all(&dir).unwrap();
+        let nfd = dir.join("Fre\u{301}de\u{301}ric - Valsa.mid");
+        let nfc = dir.join("Fr\u{e9}d\u{e9}ric - Valsa.mid");
+        std::fs::write(&nfd, b"x").unwrap();
+        let store = TakeStore::with_base(dir.join("store"));
+        store.save(&nfc, &notes(), &Report::default()).unwrap();
+        assert_eq!(store.list(&nfd).len(), 1, "pela forma do disco");
+        assert_eq!(store.list(&nfc).len(), 1, "pela forma composta");
     }
 
     #[test]

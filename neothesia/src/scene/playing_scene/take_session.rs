@@ -33,7 +33,7 @@ impl TakeSession {
         let song_path = ctx
             .config
             .last_opened_song()
-            .cloned()
+            .map(|p| crate::library::canonical(p))
             .filter(|p| !ctx.takes.is_take_path(p))
             // Ver uma comparação na cascata não cria gravações
             .filter(|_| !ctx.suppress_recording);
