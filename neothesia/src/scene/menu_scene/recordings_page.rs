@@ -7,15 +7,7 @@ use crate::{
     NeothesiaEvent, context::Context, icons, library::Library, song::Song, theme, widgets,
 };
 
-/// Uma gravação é "parcial" se cobre menos de metade do maior trecho gravado
-/// desta música (não deve ganhar "melhor" a gravações completas).
-fn is_partial(t: &crate::recording::Take, all: &[crate::recording::Take]) -> bool {
-    let len = |t: &crate::recording::Take| {
-        t.info.covered.map(|(a, b)| b.saturating_sub(a).as_secs_f32()).unwrap_or(0.0)
-    };
-    let longest = all.iter().map(len).fold(0.0, f32::max);
-    longest > 0.0 && len(t) < longest * 0.5
-}
+use super::song_page::{is_complete, song_duration};
 
 enum Act {
     Back,
@@ -50,6 +42,8 @@ impl super::MenuScene {
             .as_deref()
             .map(Library::pretty_title)
             .unwrap_or_default();
+        let song_path = self.state.recordings_song.clone().unwrap_or_default();
+        let dur = song_duration(ctx, ui, &song_path);
         let takes = &self.state.recordings;
 
         nuon::translate().x(x0).y(margin).build(ui, |ui| {
@@ -112,7 +106,7 @@ impl super::MenuScene {
                     let trailing = 36.0 * 2.0 + theme::SPACE_S * 3.0;
                     let best = takes
                         .iter()
-                        .filter(|t| !is_partial(t, takes))
+                        .filter(|t| is_complete(t, dur))
                         .map(|t| t.accuracy)
                         .fold(0.0, f32::max);
                     for (i, t) in takes.iter().enumerate() {
@@ -142,7 +136,7 @@ impl super::MenuScene {
                             "{:.0}%   {}{}",
                             t.accuracy * 100.0,
                             t.date_label(),
-                            if t.accuracy == best && !is_partial(t, takes) { "   ★ melhor" } else { "" }
+                            if t.accuracy == best && is_complete(t, dur) { "   ★ melhor" } else { "" }
                         );
                         nuon::translate().build(ui, |ui| {
                             if widgets::list_row(("rec_row", i), row_w, &title)

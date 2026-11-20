@@ -192,8 +192,9 @@ impl super::MenuScene {
                 .build(ui);
 
             if !icons_only {
-                nuon::translate().x(PAD).build(ui, |ui| {
-                    widgets::eyebrow(ui, block_w - PAD * 2.0, "Playlist");
+                // Padding interno do bloco (o quad já começa em x = PAD)
+                nuon::translate().x(PAD * 2.0).build(ui, |ui| {
+                    widgets::eyebrow(ui, block_w - PAD * 3.0, "Playlist");
                 });
             }
 

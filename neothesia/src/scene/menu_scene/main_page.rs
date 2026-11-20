@@ -73,7 +73,11 @@ impl super::MenuScene {
                 let song_name = self
                     .state
                     .song()
-                    .map(|s| crate::library::pretty_title_of(&s.file.name).0)
+                    .map(|s| {
+                        let name = &s.file.name;
+                        let stem = name.strip_suffix(".mid").or(name.strip_suffix(".midi")).unwrap_or(name);
+                        crate::library::pretty_title_of(stem).0
+                    })
                     .unwrap_or_default();
 
                 let r = widgets::card(ui, ("main_continue", 0), WIDE_W, 64.0, |ui, t| {

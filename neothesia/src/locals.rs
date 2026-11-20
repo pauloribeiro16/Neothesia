@@ -741,6 +741,13 @@ pub mod song {
         }
     }
 
+    pub fn hesitations_label() -> String {
+        match LOCAL.as_str() {
+            "pt" => "hesitações".into(),
+            _ => "hesitations".into(),
+        }
+    }
+
     pub fn stat_hesitations(n: usize) -> String {
         match LOCAL.as_str() {
             "pt" => {

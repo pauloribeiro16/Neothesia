@@ -35,7 +35,7 @@ fn page_state(ui: &mut nuon::Ui) -> &mut PageState {
 }
 
 /// Duração da música (max end das notas), calculada uma única vez por path
-fn song_duration(ctx: &Context, ui: &mut nuon::Ui, path: &PathBuf) -> f32 {
+pub(super) fn song_duration(ctx: &Context, ui: &mut nuon::Ui, path: &PathBuf) -> f32 {
     let cache: &mut Option<(PathBuf, f32)> = ui.data(widgets::wid(("song", "dur_cache")));
     if let Some((p, d)) = cache.as_ref()
         && p == path
@@ -57,9 +57,20 @@ fn song_duration(ctx: &Context, ui: &mut nuon::Ui, path: &PathBuf) -> f32 {
     dur
 }
 
+/// Uma gravação é "completa" se cobrir ≥ 90 % da duração da música
+/// (gravações automáticas, sem `covered`, são sempre completas).
+pub(super) fn is_complete(t: &Take, song_dur: f32) -> bool {
+    match t.info.covered {
+        None => true,
+        Some((a, b)) => {
+            song_dur <= 0.0 || (b.saturating_sub(a)).as_secs_f32() / song_dur >= 0.9
+        }
+    }
+}
+
 /// Melhor gravação completa (ou, em falta, a melhor de todas)
-fn best_take(takes: &[Take]) -> Option<&Take> {
-    let complete: Vec<&Take> = takes.iter().filter(|t| !is_partial(t, takes)).collect();
+fn best_take(takes: &[Take], song_dur: f32) -> Option<&Take> {
+    let complete: Vec<&Take> = takes.iter().filter(|t| is_complete(t, song_dur)).collect();
     complete
         .iter()
         .max_by(|a, b| a.accuracy.total_cmp(&b.accuracy))
@@ -91,9 +102,9 @@ impl super::MenuScene {
             return;
         };
         let takes = self.state.recordings.clone();
-        let best = best_take(&takes).cloned();
-        let first = takes.last().cloned();
         let dur = song_duration(ctx, ui, &song);
+        let best = best_take(&takes, dur).cloned();
+        let first = takes.last().cloned();
 
         let body_w = nav.content_w - theme::SPACE_XL * 2.0;
         let x0 = nav.content_x + theme::SPACE_XL;
@@ -116,10 +127,23 @@ impl super::MenuScene {
                 .color(theme::text_faint())
                 .text("›")
                 .build(ui);
-            let composer = Library::pretty_title(&song).1.unwrap_or_default();
+            // Nome canónico do autor (o mesmo que a Biblioteca mostra)
+            let composer = Library::pretty_title(&song)
+                .1
+                .and_then(|c| {
+                    ctx.library
+                        .by_composer()
+                        .into_iter()
+                        .find(|g| {
+                            g.name.to_lowercase().contains(&c.to_lowercase())
+                                || c.to_lowercase().contains(&g.name.to_lowercase())
+                        })
+                        .map(|g| g.name)
+                })
+                .unwrap_or_else(|| Library::pretty_title(&song).1.unwrap_or_default());
             nuon::label()
-                .x(146.0)
-                .size(body_w - 146.0, 28.0)
+                .x(134.0)
+                .size(body_w - 134.0, 28.0)
                 .font_size(theme::FONT_S)
                 .color(theme::accent())
                 .text_justify(TextAlign::Start)
@@ -157,17 +181,16 @@ impl super::MenuScene {
             }
             nuon::translate().x(150.0 + theme::SPACE_M).add_to_current(ui);
 
-            // A comparação visual chega com uma tarefa futura; desativado
+            // A comparação visual chega com a R6; desativado até lá
+            // Secondary é o estilo por omissão do botão
             widgets::button(("song_compare", 0), locals::song::compare_best())
                 .size(190.0, theme::BUTTON_H)
-                .ghost()
                 .build(ui);
             nuon::translate().x(190.0 + theme::SPACE_M).add_to_current(ui);
 
-            // A edição chega com a B10; desativado
+            // A edição chega com a B10; desativado até lá
             widgets::button(("song_edit", 0), locals::song::edit())
                 .size(120.0, theme::BUTTON_H)
-                .ghost()
                 .build(ui);
         });
 
@@ -196,8 +219,17 @@ impl super::MenuScene {
             let stats: [(String, String, Option<String>); 4] = best
                 .as_ref()
                 .map(|b| {
+                    let acc_pct = format!("{:.1} %", b.accuracy * 100.0).replace('.', ",");
                     [
-                        (b.hits.to_string(), locals::song::stat_hits(), None),
+                        (
+                            acc_pct,
+                            format!(
+                                "{} de {}",
+                                b.hits,
+                                b.hits + b.missed
+                            ),
+                            None,
+                        ),
                         (
                             b.info
                                 .tempo_ratio
@@ -213,7 +245,7 @@ impl super::MenuScene {
                         ),
                         (
                             b.info.hesitations.to_string(),
-                            locals::song::stat_hesitations(b.info.hesitations),
+                            locals::song::hesitations_label(),
                             era_hes.clone(),
                         ),
                     ]
@@ -298,7 +330,35 @@ impl super::MenuScene {
 
             if takes.len() >= 2 {
                 let chart_h = 140.0;
-                widgets::line_chart(ui, "song_evo", body_w, chart_h, &values);
+                let fmt = |v: f32| -> String {
+                    match metric {
+                        0 => format!("{:.0} %", v * 100.0),
+                        1 => format!("{:.0} %", v * 100.0),
+                        2 => format!("{:.0} ms", v),
+                        _ => format!("{:.0}", v),
+                    }
+                };
+                let (lo, hi) = widgets::auto_range(&values);
+                let hovered =
+                    widgets::line_chart(ui, "song_evo", body_w, chart_h, &values);
+
+                // Eixo esquerdo: máximo (topo) e mínimo (fundo)
+                nuon::label()
+                    .y(0.0)
+                    .size(70.0, 18.0)
+                    .font_size(theme::FONT_S - 1.0)
+                    .color(theme::text_faint())
+                    .text_justify(TextAlign::Start)
+                    .text(fmt(hi))
+                    .build(ui);
+                nuon::label()
+                    .y(chart_h - 18.0)
+                    .size(70.0, 18.0)
+                    .font_size(theme::FONT_S - 1.0)
+                    .color(theme::text_faint())
+                    .text_justify(TextAlign::Start)
+                    .text(fmt(lo))
+                    .build(ui);
                 if metric >= 2 {
                     nuon::label()
                         .y(chart_h + 4.0)
@@ -309,13 +369,63 @@ impl super::MenuScene {
                         .text(locals::song::lower_is_better())
                         .build(ui);
                 }
+
+                // Datas da primeira (mais antiga) e da última gravação
+                if let (Some(oldest), Some(newest)) = (takes.last(), takes.first()) {
+                    nuon::label()
+                        .y(chart_h + 22.0)
+                        .size(body_w, 18.0)
+                        .font_size(theme::FONT_S - 1.0)
+                        .color(theme::text_faint())
+                        .text_justify(TextAlign::Start)
+                        .text(oldest.date_label())
+                        .build(ui);
+                    nuon::label()
+                        .y(chart_h + 22.0)
+                        .size(body_w, 18.0)
+                        .font_size(theme::FONT_S - 1.0)
+                        .color(theme::text_faint())
+                        .text_justify(TextAlign::End)
+                        .text(newest.date_label())
+                        .build(ui);
+                }
+
+                // Tooltip com o valor do ponto sob o rato
+                if let Some(i) = hovered
+                    && let Some(v) = values.get(i)
+                    && let Some(t) = takes.get(takes.len() - 1 - i)
+                {
+                    let text = format!("{} · {}", fmt(*v), t.date_label());
+                    let w = text.chars().count() as f32 * theme::FONT_S * 0.62 + 16.0;
+                    nuon::layer().overlay(true).build(ui, |ui| {
+                        nuon::translate()
+                            .x((body_w - 70.0) * ((i + 1) as f32 / values.len() as f32) - w / 2.0)
+                            .y(-28.0)
+                            .build(ui, |ui| {
+                                nuon::quad()
+                                    .size(w, 24.0)
+                                    .color(theme::surface())
+                                    .border_color(theme::border_strong())
+                                    .border_width(1.0)
+                                    .border_radius([theme::RADIUS_S; 4])
+                                    .build(ui);
+                                nuon::label()
+                                    .size(w, 24.0)
+                                    .font_size(theme::FONT_S - 1.0)
+                                    .color(theme::text())
+                                    .text(text)
+                                    .build(ui);
+                            });
+                    });
+                }
             } else {
                 widgets::hint(ui, body_w, 40.0, &locals::song::empty_takes());
             }
         });
 
         // ── Gravações ────────────────────────────────────────────────
-        let list_y = evo_y + 34.0 + 42.0 + 140.0 + theme::SPACE_XL;
+        // +26: espaço para as datas da evolução por baixo do gráfico
+        let list_y = evo_y + 34.0 + 42.0 + 140.0 + 26.0 + theme::SPACE_XL;
         let list_h = (win_h - list_y - theme::SPACE_L - theme::BUTTON_H).max(120.0);
         nuon::translate().x(x0).y(list_y).build(ui, |ui| {
             widgets::section_title(ui, body_w, &locals::song::recordings(), Some(takes.len()));
@@ -359,7 +469,7 @@ impl super::MenuScene {
                                         "{:.0} % · {}{}",
                                         t.accuracy * 100.0,
                                         t.date_label(),
-                                        if !is_partial(t, &takes) {
+                                        if is_complete(t, dur) {
                                             format!(" · {}", locals::song::complete())
                                         } else {
                                             String::new()
