@@ -192,8 +192,9 @@ impl super::MenuScene {
                 .build(ui);
 
             if !icons_only {
-                nuon::translate().x(PAD).build(ui, |ui| {
-                    widgets::eyebrow(ui, block_w - PAD * 2.0, "Playlist");
+                // Padding interno do bloco (o quad já começa em x = PAD)
+                nuon::translate().x(PAD * 2.0).build(ui, |ui| {
+                    widgets::eyebrow(ui, block_w - PAD * 3.0, "Playlist");
                 });
             }
 
@@ -250,14 +251,7 @@ impl super::MenuScene {
     /// Aplica as ações da navegação (chamar no fim da página).
     pub fn apply_nav_actions(&mut self, ctx: &mut Context, act: NavActions) {
         if act.go_main {
-            // go_home() ainda não existe no UiState (campo privado); volta
-            // atrás, com limite, até ao Início. A pedir ao A para acrescentar.
-            for _ in 0..8 {
-                if self.state.current() == &Page::Main {
-                    break;
-                }
-                self.state.go_back();
-            }
+            self.state.go_home();
         }
         if act.go_library {
             self.state.go_to(Page::Library);
