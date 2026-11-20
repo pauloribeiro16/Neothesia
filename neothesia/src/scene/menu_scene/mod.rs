@@ -15,6 +15,7 @@ mod recordings_page;
 mod results_page;
 mod song_page;
 mod settings;
+mod shell;
 mod tracks;
 
 use std::{collections::HashSet, future::Future, time::Duration};
@@ -104,6 +105,7 @@ impl MenuScene {
                 let song = std::env::var_os("NEOTHESIA_SONG")
                     .map(Into::into)
                     .unwrap_or_else(crate::recording::demo::song_path);
+                crate::recording::demo::seed_takes(ctx);
                 iced_state.open_song(ctx, song);
             }
             Some("results") => {

@@ -527,6 +527,297 @@ pub mod settings {
     }
 }
 
+pub mod results {
+    use super::LOCAL;
+
+    pub fn accuracy() -> String {
+        match LOCAL.as_str() {
+            "pt" => "Precisão".into(),
+            _ => "Accuracy".into(),
+        }
+    }
+
+    pub fn hits() -> String {
+        match LOCAL.as_str() {
+            "pt" => "certas".into(),
+            _ => "hits".into(),
+        }
+    }
+
+    pub fn missed() -> String {
+        match LOCAL.as_str() {
+            "pt" => "falhadas".into(),
+            _ => "missed".into(),
+        }
+    }
+
+    pub fn extra() -> String {
+        match LOCAL.as_str() {
+            "pt" => "a mais".into(),
+            _ => "extra".into(),
+        }
+    }
+
+    pub fn rhythm(offset_ms: f32, timing: &str, spread_ms: f32) -> String {
+        match LOCAL.as_str() {
+            "pt" => format!("Ritmo: {offset_ms:+.0} ms ({timing}) · regularidade {spread_ms:.0} ms"),
+            _ => format!("Timing: {offset_ms:+.0} ms ({timing}) · regularity {spread_ms:.0} ms"),
+        }
+    }
+
+    pub fn timing_none() -> String {
+        "—".into()
+    }
+
+    pub fn timing_on_time() -> String {
+        match LOCAL.as_str() {
+            "pt" => "certinho".into(),
+            _ => "on time".into(),
+        }
+    }
+
+    pub fn timing_slightly_late() -> String {
+        match LOCAL.as_str() {
+            "pt" => "ligeiramente atrasado".into(),
+            _ => "slightly late".into(),
+        }
+    }
+
+    pub fn timing_late() -> String {
+        match LOCAL.as_str() {
+            "pt" => "atrasado".into(),
+            _ => "late".into(),
+        }
+    }
+
+    pub fn timing_slightly_early() -> String {
+        match LOCAL.as_str() {
+            "pt" => "ligeiramente adiantado".into(),
+            _ => "slightly early".into(),
+        }
+    }
+
+    pub fn timing_early() -> String {
+        match LOCAL.as_str() {
+            "pt" => "adiantado".into(),
+            _ => "early".into(),
+        }
+    }
+
+    pub fn sections_title() -> String {
+        match LOCAL.as_str() {
+            "pt" => "Erros por compasso".into(),
+            _ => "Errors per bar".into(),
+        }
+    }
+
+    pub fn section_tooltip(n: usize, missed: usize, extra: usize) -> String {
+        match LOCAL.as_str() {
+            "pt" => format!("Compasso {n}: {missed} falhadas, {extra} a mais"),
+            _ => format!("Bar {n}: {missed} missed, {extra} extra"),
+        }
+    }
+
+    pub fn vs_previous(delta_pct: f32) -> String {
+        match LOCAL.as_str() {
+            "pt" => format!("{delta_pct:+.0} % do que a última vez"),
+            _ => format!("{delta_pct:+.0} % than last time"),
+        }
+    }
+
+    pub fn same_as_previous() -> String {
+        match LOCAL.as_str() {
+            "pt" => "igual à última vez".into(),
+            _ => "same as last time".into(),
+        }
+    }
+
+    pub fn view_recording() -> String {
+        match LOCAL.as_str() {
+            "pt" => "Ver gravação".into(),
+            _ => "View recording".into(),
+        }
+    }
+
+    pub fn recordings() -> String {
+        match LOCAL.as_str() {
+            "pt" => "Gravações".into(),
+            _ => "Recordings".into(),
+        }
+    }
+
+    pub fn replay() -> String {
+        match LOCAL.as_str() {
+            "pt" => "Repetir".into(),
+            _ => "Replay".into(),
+        }
+    }
+
+    pub fn next() -> String {
+        match LOCAL.as_str() {
+            "pt" => "Seguinte".into(),
+            _ => "Next".into(),
+        }
+    }
+}
+
+pub mod song {
+    use super::LOCAL;
+
+    pub fn play() -> String {
+        match LOCAL.as_str() {
+            "pt" => "Tocar".into(),
+            _ => "Play".into(),
+        }
+    }
+
+    pub fn edit() -> String {
+        match LOCAL.as_str() {
+            "pt" => "Editar".into(),
+            _ => "Edit".into(),
+        }
+    }
+
+    pub fn compare_best() -> String {
+        match LOCAL.as_str() {
+            "pt" => "Comparar a melhor".into(),
+            _ => "Compare best".into(),
+        }
+    }
+
+    pub fn evolution() -> String {
+        match LOCAL.as_str() {
+            "pt" => "Evolução".into(),
+            _ => "Progress".into(),
+        }
+    }
+
+    pub fn metric_accuracy() -> String {
+        match LOCAL.as_str() {
+            "pt" => "Precisão".into(),
+            _ => "Accuracy".into(),
+        }
+    }
+
+    pub fn metric_tempo() -> String {
+        match LOCAL.as_str() {
+            "pt" => "Andamento".into(),
+            _ => "Tempo".into(),
+        }
+    }
+
+    pub fn metric_spread() -> String {
+        match LOCAL.as_str() {
+            "pt" => "Regularidade".into(),
+            _ => "Regularity".into(),
+        }
+    }
+
+    pub fn metric_hesitations() -> String {
+        match LOCAL.as_str() {
+            "pt" => "Hesitações".into(),
+            _ => "Hesitations".into(),
+        }
+    }
+
+    pub fn stat_hits() -> String {
+        match LOCAL.as_str() {
+            "pt" => "certas".into(),
+            _ => "hits".into(),
+        }
+    }
+
+    pub fn stat_tempo() -> String {
+        match LOCAL.as_str() {
+            "pt" => "andamento".into(),
+            _ => "tempo".into(),
+        }
+    }
+
+    pub fn stat_spread() -> String {
+        match LOCAL.as_str() {
+            "pt" => "regularidade".into(),
+            _ => "regularity".into(),
+        }
+    }
+
+    pub fn stat_hesitations(n: usize) -> String {
+        match LOCAL.as_str() {
+            "pt" => {
+                if n == 1 {
+                    "1 hesitação".into()
+                } else {
+                    format!("{n} hesitações")
+                }
+            }
+            _ => format!("{n} hesitation{}", if n == 1 { "" } else { "s" }),
+        }
+    }
+
+    pub fn was_before(value: &str) -> String {
+        match LOCAL.as_str() {
+            "pt" => format!("era {value}"),
+            _ => format!("was {value}"),
+        }
+    }
+
+    pub fn lower_is_better() -> String {
+        match LOCAL.as_str() {
+            "pt" => "menor é melhor".into(),
+            _ => "lower is better".into(),
+        }
+    }
+
+    pub fn recordings() -> String {
+        match LOCAL.as_str() {
+            "pt" => "Gravações".into(),
+            _ => "Recordings".into(),
+        }
+    }
+
+    pub fn empty_takes() -> String {
+        match LOCAL.as_str() {
+            "pt" => "Ainda não há gravações desta música. Toca-a e aparecem aqui.".into(),
+            _ => "No recordings of this song yet. Play it and they appear here.".into(),
+        }
+    }
+
+    pub fn excerpt() -> String {
+        match LOCAL.as_str() {
+            "pt" => "trecho".into(),
+            _ => "excerpt".into(),
+        }
+    }
+
+    pub fn complete() -> String {
+        match LOCAL.as_str() {
+            "pt" => "completa".into(),
+            _ => "full".into(),
+        }
+    }
+
+    pub fn delete() -> String {
+        match LOCAL.as_str() {
+            "pt" => "Apagar".into(),
+            _ => "Delete".into(),
+        }
+    }
+
+    pub fn confirm_delete() -> String {
+        match LOCAL.as_str() {
+            "pt" => "Confirmar?".into(),
+            _ => "Sure?".into(),
+        }
+    }
+
+    pub fn view() -> String {
+        match LOCAL.as_str() {
+            "pt" => "Ver gravação".into(),
+            _ => "View recording".into(),
+        }
+    }
+}
+
 pub mod tracks {
     use super::LOCAL;
 
@@ -585,6 +876,84 @@ pub mod library {
             "de" => "Bibliothek".into(),
             "pt" => "Biblioteca".into(),
             _ => "Library".into(),
+        }
+    }
+
+    pub fn one_song() -> String {
+        match LOCAL.as_str() {
+            "pl" => "1 utwór".into(),
+            "de" => "1 Stück".into(),
+            "pt" => "1 música".into(),
+            _ => "1 song".into(),
+        }
+    }
+
+    pub fn songs_count() -> String {
+        match LOCAL.as_str() {
+            "pl" => "utworów".into(),
+            "de" => "Stücke".into(),
+            "pt" => "músicas".into(),
+            _ => "songs".into(),
+        }
+    }
+
+    pub fn composers() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Kompozytorzy".into(),
+            "de" => "Komponisten".into(),
+            "pt" => "Autores".into(),
+            _ => "Composers".into(),
+        }
+    }
+
+    pub fn favorites_view() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Ulubione".into(),
+            "de" => "Favoriten".into(),
+            "pt" => "Favoritas".into(),
+            _ => "Favorites".into(),
+        }
+    }
+
+    pub fn to_study() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Do nauki".into(),
+            "de" => "Zum Lernen".into(),
+            "pt" => "A estudar".into(),
+            _ => "To study".into(),
+        }
+    }
+
+    pub fn others() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Inni".into(),
+            "de" => "Andere".into(),
+            "pt" => "Outros".into(),
+            _ => "Others".into(),
+        }
+    }
+
+    pub fn header_info(songs: usize, composers: usize) -> String {
+        match LOCAL.as_str() {
+            "pl" => format!("{songs} utworów · {composers} kompozytorów"),
+            "de" => format!("{songs} Stücke · {composers} Komponisten"),
+            "pt" => format!("{songs} músicas · {composers} autores"),
+            _ => format!("{songs} songs · {composers} composers"),
+        }
+    }
+
+    pub fn n_songs(n: usize) -> String {
+        match LOCAL.as_str() {
+            "pl" => format!("{n} utwór(-ów)"),
+            "de" => format!("{n} Stück(e)"),
+            "pt" => {
+                if n == 1 {
+                    "1 música".into()
+                } else {
+                    format!("{n} músicas")
+                }
+            }
+            _ => format!("{n} song{}", if n == 1 { "" } else { "s" }),
         }
     }
 
