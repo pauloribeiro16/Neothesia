@@ -102,10 +102,14 @@ impl MenuScene {
             Some("tracks") => iced_state.go_to(Page::TrackSelection),
             Some("song") => {
                 // NEOTHESIA_SONG=/caminho/musica.mid (por omissão, test.mid de demonstração)
-                let song = std::env::var_os("NEOTHESIA_SONG")
-                    .map(Into::into)
-                    .unwrap_or_else(crate::recording::demo::song_path);
-                crate::recording::demo::seed_takes(ctx);
+                // Com NEOTHESIA_SONG usa as gravações reais; sem ele, a demonstração.
+                let song = match std::env::var_os("NEOTHESIA_SONG").filter(|s| !s.is_empty()) {
+                    Some(s) => s.into(),
+                    None => {
+                        crate::recording::demo::seed_takes(ctx);
+                        crate::recording::demo::song_path()
+                    }
+                };
                 iced_state.open_song(ctx, song);
             }
             Some("results") => {
@@ -249,6 +253,7 @@ impl Scene for MenuScene {
         self.quad_pipeline.clear();
         self.bg_pipeline.update_time(delta);
         self.age += delta.as_secs_f32();
+        ctx.library.poll_scan();
         self.state.tick(ctx);
 
         self.futures

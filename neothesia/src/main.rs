@@ -135,6 +135,7 @@ impl Neothesia {
                 event_loop.exit();
             }
             WindowEvent::Occluded(is_occluded) => {
+                log::debug!("janela escondida (occluded): {is_occluded}");
                 self.is_occluded = *is_occluded;
             }
             _ => {}

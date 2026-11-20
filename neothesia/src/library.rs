@@ -82,6 +82,8 @@ pub struct Library {
     /// Os `.mid` dessas pastas são importados como gravações (ver
     /// `recording::import`) e não aparecem como músicas na biblioteca.
     pub links: Vec<(PathBuf, PathBuf)>,
+    /// Leitura das pastas a decorrer em segundo plano (ver `rescan`/`poll_scan`)
+    scan_rx: Option<std::sync::mpsc::Receiver<Vec<LibSong>>>,
 }
 
 pub const MAX_RECENT: usize = 20;
@@ -155,20 +157,46 @@ impl Library {
         }
     }
 
+    /// Volta a ler as pastas **em segundo plano**: as pastas podem estar no Google
+    /// Drive, que às vezes demora segundos a responder, e isso nunca pode parar a
+    /// app. A lista nova entra em `songs` no próximo `poll_scan()` depois de pronta.
     pub fn rescan(&mut self) {
-        let mut found: Vec<(PathBuf, PathBuf)> = Vec::new(); // (ficheiro, raiz)
-        for folder in &self.folders {
-            let mut files = Vec::new();
-            scan_dir(folder, 0, &mut files);
-            found.extend(files.into_iter().map(|f| (f, folder.clone())));
+        let folders = self.folders.clone();
+        let links = self.links.clone();
+        let (tx, rx) = std::sync::mpsc::channel();
+        let spawned = std::thread::Builder::new()
+            .name("ler-biblioteca".into())
+            .spawn(move || {
+                let _ = tx.send(scan_songs(&folders, &links));
+            });
+        match spawned {
+            Ok(_) => self.scan_rx = Some(rx),
+            // Sem threads (não deve acontecer): ler já, como antes
+            Err(_) => self.songs = scan_songs(&self.folders, &self.links),
         }
-        found.retain(|(p, _)| !self.links.iter().any(|(folder, _)| p.starts_with(folder)));
-        found.sort_by_key(|(p, _)| p.to_string_lossy().to_lowercase());
-        found.dedup_by(|a, b| a.0 == b.0);
-        self.songs = found
-            .into_iter()
-            .map(|(p, root)| LibSong::with_root(p, Some(&root)))
-            .collect();
+    }
+
+    /// Chamar a cada frame: aplica o resultado da leitura em segundo plano.
+    /// Devolve `true` se a lista de músicas mudou agora.
+    pub fn poll_scan(&mut self) -> bool {
+        let Some(rx) = &self.scan_rx else { return false };
+        match rx.try_recv() {
+            Ok(songs) => {
+                self.songs = songs;
+                self.scan_rx = None;
+                true
+            }
+            Err(std::sync::mpsc::TryRecvError::Empty) => false,
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                self.scan_rx = None;
+                false
+            }
+        }
+    }
+
+    /// A biblioteca ainda está a ler as pastas?
+    pub fn is_scanning(&self) -> bool {
+        self.scan_rx.is_some()
     }
 
     /// Músicas agrupadas por autor: mais músicas primeiro, depois por nome;
@@ -479,6 +507,23 @@ pub fn pretty_title_of(stem: &str) -> (String, Option<String>) {
     } else {
         (title, Some(composer))
     }
+}
+
+/// Lê as pastas e devolve as músicas (corre na thread de leitura).
+fn scan_songs(folders: &[PathBuf], links: &[(PathBuf, PathBuf)]) -> Vec<LibSong> {
+    let mut found: Vec<(PathBuf, PathBuf)> = Vec::new(); // (ficheiro, raiz)
+    for folder in folders {
+        let mut files = Vec::new();
+        scan_dir(folder, 0, &mut files);
+        found.extend(files.into_iter().map(|f| (f, folder.clone())));
+    }
+    found.retain(|(p, _)| !links.iter().any(|(folder, _)| p.starts_with(folder)));
+    found.sort_by_key(|(p, _)| p.to_string_lossy().to_lowercase());
+    found.dedup_by(|a, b| a.0 == b.0);
+    found
+        .into_iter()
+        .map(|(p, root)| LibSong::with_root(p, Some(&root)))
+        .collect()
 }
 
 fn scan_dir(dir: &Path, depth: usize, out: &mut Vec<PathBuf>) {

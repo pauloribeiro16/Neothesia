@@ -184,10 +184,10 @@ Quatro ecrãs: "Biblioteca por autor", "Página da música", "Comparação visua
 | ID | Tarefa | Estado |
 |---|---|---|
 | **R1** | Navegação lateral partilhada (`menu_scene/shell.rs`, ficheiro novo, teu): logótipo "Neothasia" em serifa e itens Início, Biblioteca, Gravações, Estatísticas, Definições (item ativo com fundo dourado a 12 %). Largura 232 px; abaixo de 900 px de janela passa a só ícones (64 px). Bloco "Playlist" no fundo. | por fazer |
-| **R2** | Biblioteca por autor (`library_page.rs`) | em revisão |
-| **R3** | Página da música (`song_page.rs`) | em revisão |
-| **R4** | Menu (`main_page.rs`) | em revisão |
-| **R5** | Resultado (`results_page.rs`) | em revisão |
+| **R2** | Biblioteca por autor (`library_page.rs`) | feito |
+| **R3** | Página da música (`song_page.rs`) | feito |
+| **R4** | Menu (`main_page.rs`) | feito |
+| **R5** | Resultado (`results_page.rs`) | feito |
 
 Ordem: **R1 → R2 → R3 → R4 → R5**. Faz captura de cada ecrã (uma de cada vez, com `NEOTHESIA_CAPTURE_FRAME=30`) e compara com a maqueta antes de passares a tarefa para `em revisão`.
 
@@ -203,6 +203,7 @@ Demora cerca de 50 ms numa música inteira: **calcula só uma vez** quando a pá
 
 | ID | Tarefa | Estado |
 |---|---|---|
+| **R3a** | Correções da revisão de R1–R5 (lista na mensagem do A de hoje, "Revisão R1–R5") | por fazer |
 | **R6** | Ecrã "Comparação" (`compare_page.rs`, novo, teu), igual ao 3.º ecrã da maqueta. Peço-te que acrescentes `Page::Compare` em `state.rs`/`mod.rs` (autorizado só para esta variante e o seu encaminhamento, seguindo o padrão de `Page::Song`). Entra pelos botões "Comparar a melhor" da página da música e "Comparar" em cada gravação. Conteúdo: **(1)** cabeçalho com os 4 números (do `Take`); **(2)** curva "Andamento ao longo da peça" (`bars[i].tempo`, com a linha tracejada do andamento típico `analysis.tempo` e pontos laranja nos compassos com `hesitations > 0`); **(3)** mapa de compassos, um quadrado por compasso com cor de `score` (≥ 0,85 `good()`, ≥ 0,6 `warn()` a 40 %, abaixo `warn()`, `None` cinzento). Clicar escolhe o compasso para o zoom; **(4)** zoom tipo piano roll de 4 compassos: as notas esperadas (`analysis.notes`) em contorno marfim e as tocadas (`analysis.played`, já no tempo do original) a cheio, `good()` se `!off_time`, `warn()` se `off_time`. Assinala com um retângulo tracejado laranja os acordes com `chord_spread_ms ≥ 40`; **(5)** coluna "O que melhorar" com `analysis.insights` (positivos com borda azul, os outros laranja). Clicar numa sugestão leva o zoom para `insight.bars.0`. Captura: pede-me um `NEOTHESIA_PAGE=compare` ou faz tu um, com a gravação real. | por fazer |
 | **R7** | **Comparação na cascata** (pedido explícito do utilizador). ⛔ **Sem mexer no desenho da cascata** (`ARQUITETURA.md` § 10). Abordagem obrigatória, a **faixa extra**: cria `neothesia/src/recording/cascade.rs` (autorizado, ficheiro novo) com `pub fn compare_song(song: &Path, take: &Take) -> Result<Song, String>`, que **(a)** carrega o `MidiFile` original; **(b)** corre `analyze_files`; **(c)** constrói uma `MidiTrack` nova com as notas de `analysis.played` (já no tempo do original) — `MidiNote` + os `MidiEvent` NoteOn/NoteOff correspondentes, `track_id` = nº de faixas, `track_color_id` diferente das outras; **(d)** devolve `Song` com essa faixa acrescentada, configurada como `PlayerConfig::Mute` (não soa) e visível. As faixas originais ficam como estão (soam). Botão "Ver na cascata" na R6 e em cada gravação: `connect_io` e `NeothesiaEvent::Play(song)`. **A gravação automática não pode gravar neste modo**: pede-me a flag (eu acrescento `ctx.compare_mode` ao `TakeSession`). | por fazer |
 

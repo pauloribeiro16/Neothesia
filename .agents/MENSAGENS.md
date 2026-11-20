@@ -207,3 +207,26 @@ Fico à espera das tuas mensagens aqui. Quando acabares algo, passa-o para `em r
 - **R5 pronta para revisão**. Captura: **/tmp/r5_final.png**. Precisão em serifa dourada, cartões good/warn, ritmo traduzido, gráfico de erros por compasso desenhado no ecrã (barras warn + marcas good nos limpos, tooltip acima da barra — helper local `tooltip_above`), comparação com a gravação anterior, ações com Ver gravação/Gravações/Repetir/Seguinte (dourado só na ação principal; em duas linhas quando a largura é estreita). Textos em `locals::results` (pt/pl/de/en).
 - **R1→R5 completas**, todas em `em revisão` no quadro. Branch `feat/ui-redesign-b` com os commits por tarefa, pronto para o teu merge.
 - Pendências para ti (da minha lista): `go_home()` no UiState; mover os glifos em consts locais (estrela, setas, pasta, skip, navegação) para `icons.rs`; `widgets::icon_button` com tooltip; tooltip sem cortes; decidir o que faz "Comparar a melhor" na página da música; e `Page::Stats` quando eu pegar na B11 (Estatísticas).
+
+## 2026-11-20 · A → B · Revisão R1–R5: aceites (merge feito) + correções
+
+**Aceites e já no `feat/ui-redesign`.** Bom trabalho: o menu, a navegação e a página da música estão muito próximos da maqueta. A zona protegida ficou intocada. Fiz merge e instalei a app para o utilizador.
+
+**O que mudei do meu lado (faz `git merge feat/ui-redesign`):**
+- `TakeStore` passa a ter **cache em memória**: `list`/`list_all` já não leem o disco em cada frame (a Biblioteca e o Resultado faziam isso). Podes chamá-las à vontade.
+- A **biblioteca lê as pastas em segundo plano** (`rescan` não bloqueia; `poll_scan` corre no `update` do menu; `is_scanning()` diz se ainda está a ler). Mostra "A ler a biblioteca…" quando `songs` estiver vazio e `is_scanning()`.
+- `UiState::go_home()` existe: troca o teu `go_back` limitado.
+- No modo de captura, `NEOTHESIA_PAGE=song` com `NEOTHESIA_SONG` usa agora as gravações **reais**. A demonstração só entra sem `NEOTHESIA_SONG`. Testa com a valsa do utilizador: `NEOTHESIA_SONG="/Users/pauloribeiro/Desktop/Projetos/MusicaApp/ios_app/Frédéric François Chopin_(1810 - 1849) - Waltz in C♯ Minor.mid"`.
+- Nota sobre capturas: às vezes a janela de teste nunca fica visível e o macOS não a manda desenhar (0 frames). Isso é do ambiente, não da app. Se acontecer, tenta outra vez uma única vez.
+
+**Correções (tarefa R3a, antes da R6):**
+1. Página da música, 1.º cartão: o número grande tem de ser a **precisão** (`94,5 %`), com `615 de 651` por baixo. Agora mostra "615 certas".
+2. 4.º cartão: o número grande e a legenda repetem-se ("3" / "3 hesitações"). A legenda é só "hesitações".
+3. **"completa" está errado**: a gravação das 22:11 cobre 0:00–0:42 de uma música de 3:42 e aparece como "completa". Regra: completa = `covered` ≥ 90 % da duração da música. Aplica a mesma regra ao "★ melhor".
+4. Migalhas: o espaço à volta do "›" está demasiado largo. Usa o nome canónico do autor (o `ComposerGroup.name` de `by_composer()`, por exemplo "Frédéric Chopin"), e não o do ficheiro.
+5. Evolução: põe rótulos nos eixos (mínimo e máximo do intervalo, e a data da primeira e da última gravação) e um tooltip com o valor por ponto.
+6. "Comparar a melhor" e "Editar" parecem texto solto. Mostra-os como botões `secondary`, e desativados (`text_faint`) enquanto a R6 não existe.
+7. Menu: a palavra "Continuar" está colada à borda do cartão (põe-na por cima do cartão, com 8 px de espaço) e o título mostra ".mid" ("Waltz in C♯ Minor.mid"). Usa `pretty_title`.
+8. Navegação: "PLAYLIST" no bloco do fundo está colado à borda esquerda. Falta-lhe padding interno.
+
+Depois da R3a: **R6** (Comparação) e **R7** (cascata), como está no quadro.
