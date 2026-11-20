@@ -39,6 +39,8 @@ pub struct NavActions {
     pub go_recordings: bool,
     pub go_settings: bool,
     pub play_queue: bool,
+    /// Clique no bloco "Playlist" (abre/fecha o painel)
+    pub open_playlist: bool,
 }
 
 /// Geometria da navegação: onde e com que largura a página desenha o conteúdo.
@@ -172,6 +174,14 @@ impl super::MenuScene {
         let queue_len = ctx.library.queue.len();
 
         nuon::translate().y(block_y).build(ui, |ui| {
+            let block_ev = nuon::click_area(("nav_playlist_block", 0))
+                .pos(PAD, 0.0)
+                .size(block_w, block_h)
+                .build(ui);
+            if block_ev.is_clicked() {
+                act.open_playlist = true;
+            }
+
             nuon::quad()
                 .x(PAD)
                 .size(block_w, block_h)

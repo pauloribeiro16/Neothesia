@@ -606,6 +606,66 @@ pub mod library {
         }
     }
 
+    pub fn composers() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Kompozytorzy".into(),
+            "de" => "Komponisten".into(),
+            "pt" => "Autores".into(),
+            _ => "Composers".into(),
+        }
+    }
+
+    pub fn favorites_view() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Ulubione".into(),
+            "de" => "Favoriten".into(),
+            "pt" => "Favoritas".into(),
+            _ => "Favorites".into(),
+        }
+    }
+
+    pub fn to_study() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Do nauki".into(),
+            "de" => "Zum Lernen".into(),
+            "pt" => "A estudar".into(),
+            _ => "To study".into(),
+        }
+    }
+
+    pub fn others() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Inni".into(),
+            "de" => "Andere".into(),
+            "pt" => "Outros".into(),
+            _ => "Others".into(),
+        }
+    }
+
+    pub fn header_info(songs: usize, composers: usize) -> String {
+        match LOCAL.as_str() {
+            "pl" => format!("{songs} utworów · {composers} kompozytorów"),
+            "de" => format!("{songs} Stücke · {composers} Komponisten"),
+            "pt" => format!("{songs} músicas · {composers} autores"),
+            _ => format!("{songs} songs · {composers} composers"),
+        }
+    }
+
+    pub fn n_songs(n: usize) -> String {
+        match LOCAL.as_str() {
+            "pl" => format!("{n} utwór(-ów)"),
+            "de" => format!("{n} Stück(e)"),
+            "pt" => {
+                if n == 1 {
+                    "1 música".into()
+                } else {
+                    format!("{n} músicas")
+                }
+            }
+            _ => format!("{n} song{}", if n == 1 { "" } else { "s" }),
+        }
+    }
+
     pub fn recent() -> String {
         match LOCAL.as_str() {
             "pl" => "Ostatnie".into(),
