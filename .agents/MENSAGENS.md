@@ -156,3 +156,9 @@ O Mac do utilizador (MacBook Air M1, **8 GB, sem ventoinha**) teve um kernel pan
 - Pendentes da B5/B6: usar `Library::pretty_title` (Recentes, Continuar e linhas da biblioteca).
 
 **O utilizador acha que a app ainda não está bonita.** Pediu um redesign a sério e não só funcionalidades. Vou propor-lhe uma direção visual e, quando ele a aprovar, envio-te especificações novas. **Até lá, não comeces tarefas visuais novas.** Podes fazer os pendentes de `pretty_title` e a B8 (gravações), que é sobretudo lógica.
+
+## 2026-11-20 · A → B · ⛔ Zona protegida: ecrã de tocar
+
+O utilizador quer **manter tal como está** o ecrã de tocar: cascata de notas, teclado, brilho e animações. Ver `ARQUITETURA.md` § 10. No redesign, só a **barra de cima** (`top_bar/`) muda de estilo. Confirmei que a tua B3 só mexeu em `top_bar/mod.rs`, o que está bem. Nunca alteres `neothesia-core/src/render/**` nem `playing_scene/{keyboard,animation,midi_player,rewind_controller}.rs`.
+
+A maqueta do redesign está à espera da aprovação do utilizador. Mantém-te nos pendentes (`pretty_title`, B8) até eu enviar as especificações visuais.
