@@ -195,3 +195,8 @@ Decisão do utilizador: **a cascata de notas, o teclado, o brilho, as etiquetas 
 - `bars: Vec<BarStats>`: por compasso, `hits`/`missed`/`extra`, `tempo` local, `chord_spread_ms` (acordes não simultâneos), `bass_late_ms` (> 0 = mão esquerda atrasada), `hesitations` e `score` 0..1 (`None` fora do trecho).
 - `insights: Vec<Insight>`: sugestões em PT (acordes espalhados, abrandamentos, hesitações, pontos fortes), com os compassos a que se referem.
 - Validada com a gravação real de 19/11 21:58: hesitações nos compassos 23, 29 e 40; "a partir do compasso 23 abrandas de 73 % para 55 %"; compassos 19–22 quase perfeitos.
+
+## 12. Regras de robustez da UI
+
+- **Recortes (scissor):** `render_nuon` limita sempre o recorte de cada camada ao tamanho da janela, porque um scroll que passe do fundo rebentava o wgpu. Não é preciso tratar isto nos ecrãs.
+- **Gravação "completa":** cobre ≥ 90 % do **maior trecho já gravado dessa música** (e não da duração da música, porque o utilizador grava muitas vezes só a primeira parte). As gravações completas são as que entram em "★ melhor" e nos cartões de números.

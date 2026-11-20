@@ -230,3 +230,28 @@ Fico à espera das tuas mensagens aqui. Quando acabares algo, passa-o para `em r
 8. Navegação: "PLAYLIST" no bloco do fundo está colado à borda esquerda. Falta-lhe padding interno.
 
 Depois da R3a: **R6** (Comparação) e **R7** (cascata), como está no quadro.
+
+## 2026-11-20 01:35 · B → A · R3a em revisão + ⚠️ panic na captura da página Song
+
+- **R3a pronta para revisão** (commit no `feat/ui-redesign-b`): as tuas 8 correções todas. Validação visual com a valsa real antes de o modo de captura começar a falhar: **/tmp/r3a_song.png** (96,5 % + "299 de 310", "5 / hesitações", sem "completa" nos trechos, autor canónico em dourado, eixos 100 %/85 % com as datas). Ajuste extra: +26 px na lista de gravações para as datas da evolução não colidirem com o título "Gravações".
+- **⚠️ Panic intermitente no modo de captura `NEOTHESIA_PAGE=song`** (tua área — `recording/import.rs` ou arranque): a primeira captura com a valsa correu bem; nas seguintes, `song` (com demo **ou** com NEOTHESIA_SONG) faz panic fatal do wgpu ("Handling wgpu errors as fatal by default", depois de o import registrar "Ignorada (só 10 notas): gravacao-2026-11-19-21-37.mid" do Drive). A `library` captura bem sempre. Suspeito de leitura do CloudStorage/import durante o arranque do wgpu. Reproduzindo: `NEOTHESIA_CAPTURE=/tmp/x.png NEOTHESIA_PAGE=song NEOTHESIA_CAPTURE_FRAME=30 ./target/debug/neothesia`.
+- go_home: ainda não troquei o `go_back` limitado do shell — faço na próxima passagem (o merge trouxe-o, confirmo a assinatura e troco).
+- Segue para a **R6** (Comparação).
+
+## 2026-11-20 01:45 · B → A · go_home trocado; R6 à espera do teu piano_roll (A18)
+
+- O item "Início" da navegação usa agora `go_home()` (commit pequeno no meu branch).
+- **R6 em espera**: conforme o teu plano, começo depois do A18 (`widgets::piano_roll`) e A19. Avisa quando estiverem no branch.
+- Entretanto, se quiseres, vou pegando no que não depende deles: por exemplo, adiantar o esqueleto do `compare_page.rs` (cabeçalho com os 4 números + mapa de compassos + coluna "O que melhorar"), deixando o piano roll para o teu widget. Diz-me se prefere assim ou se espero pelo completo.
+
+## 2026-11-20 · A → B · R3a aceite + crash corrigido + R6/R7 desbloqueadas (são tuas)
+
+**R3a aceite e junta** (merge feito, app instalada). As correções estão quase todas certas.
+
+**Houve um crash com as gravações reais:** a lista de gravações passava do fundo da janela e o recorte (scissor) saía do ecrã, o que fazia o wgpu abortar. Corrigi na base (`render_nuon` limita o recorte à janela, `ARQUITETURA.md` § 12). Não precisas de fazer nada, mas **testa sempre com `NEOTHESIA_SONG=<valsa>` (dados reais)** e não só com a demonstração.
+
+**Duas pendências (R3b):**
+1. **Regra de "completa" (o erro foi meu):** completa = `covered` ≥ 90 % do **maior trecho já gravado dessa música**, e não da duração da música. O utilizador grava muitas vezes só os primeiros ~77 s de 3:42, por isso com a regra antiga nenhuma gravação contava como completa e o "melhor" caía na parcial das 22:12. Com a regra nova, a melhor é a de 19/11 às 21:58 (94,5 %).
+2. Migalhas: o "›" fica por cima de "Frédéric" e ainda usa o nome do ficheiro. Usa o `name` do grupo de `ctx.library.by_composer()` cuja `key` = `composer_key(composer)` (dá "Frédéric Chopin") e põe 8 px de cada lado do "›".
+
+**R6 e R7 são TUAS, incluindo o piano roll.** Peço desculpa pela confusão: numa secção antiga do quadro estava "o A faz A18/A19", mas a especificação que vale é a da secção COMPARAÇÃO. Desenha o piano roll dentro de `compare_page.rs` com `nuon::quad` (contornos com `border_color`/`border_width`), a partir de `analysis.notes` e `analysis.played`, que já estão no tempo do original. Não há widget meu de que precises de esperar. Ordem: **R3b → R6 → R7** (antes da R7 manda-me o plano da `MidiTrack`). Para a R6 podes acrescentar a `Page::Compare` e o campo `compare: Option<Analysis>` em `state.rs`/`mod.rs` (autorizado). Captura com a gravação real: abre a página da valsa e entra em "Comparar a melhor".

@@ -272,8 +272,20 @@ fn render_nuon(ui: &mut nuon::Ui, nuon_renderer: &mut NuonRenderer, ctx: &mut Co
             .to_physical::<u32>(ctx.window_state.scale_factor);
         let size = LogicalSize::new(scissor_rect.width(), scissor_rect.height())
             .to_physical::<u32>(ctx.window_state.scale_factor);
-        let scissor_rect =
-            neothesia_core::Rect::new((pos.x, pos.y).into(), (size.width, size.height).into());
+        // Limitar o recorte à janela: um scroll que passe do fundo (ou do lado)
+        // daria um retângulo fora do alvo e o wgpu aborta ("Scissor Rect ... is
+        // not contained in the render target"). Um recorte vazio não desenha nada.
+        // (Rect::zero() = "sem recorte": passa intacto.)
+        let win = ctx.window_state.physical_size;
+        let scissor_rect = if size.width == 0 && size.height == 0 && pos.x == 0 && pos.y == 0 {
+            neothesia_core::Rect::zero()
+        } else {
+            let x = pos.x.min(win.width.saturating_sub(1));
+            let y = pos.y.min(win.height.saturating_sub(1));
+            let w = size.width.min(win.width - x).max(1);
+            let h = size.height.min(win.height - y).max(1);
+            neothesia_core::Rect::new((x, y).into(), (w, h).into())
+        };
 
         out.quad_renderer.set_scissor_rect(scissor_rect);
         out.text_renderer.set_scissor_rect(scissor_rect);
